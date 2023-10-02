@@ -9,8 +9,8 @@ public:
   unsigned long count_;
   bool enabled_;
   
-  Timer(unsigned long divider_)
-  : divider_(divider_),
+  Timer(unsigned long divider)
+  : divider_(divider),
     divider_count_(0),
 	count_(0),
     enabled_(false)
@@ -48,7 +48,7 @@ public:
         {
           divider_count_ = divider_;
 
-          if (count_>0)
+          if (count_ > 0)
             --count_;
          }
        }

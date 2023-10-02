@@ -54,6 +54,9 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
+void suspend();
+void sleep();
+
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
@@ -61,10 +64,12 @@ void Error_Handler(void);
 #define BUZZER_GPIO_Port GPIOA
 #define DOOR_Pin GPIO_PIN_2
 #define DOOR_GPIO_Port GPIOC
+#define DOOR_EXTI_IRQn EXTI2_IRQn
 #define LED_Pin GPIO_PIN_3
 #define LED_GPIO_Port GPIOB
 #define CTRL_Pin GPIO_PIN_1
 #define CTRL_GPIO_Port GPIOD
+#define CTRL_EXTI_IRQn EXTI1_IRQn
 
 /* USER CODE BEGIN Private defines */
 

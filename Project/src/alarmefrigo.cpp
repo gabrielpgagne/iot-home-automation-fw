@@ -19,13 +19,13 @@ class Debouncer;
 
 
 
-Debouncer magnetSwitch(DOOR_GPIO_Port, DOOR_Pin);
+Debouncer doorSwitch(DOOR_GPIO_Port, DOOR_Pin);
 Debouncer pushButton(CTRL_GPIO_Port, CTRL_Pin);
 
 Blinker redLedBlink(LED_GPIO_Port, LED_Pin, 500 / CHECK_MSEC, 500 / CHECK_MSEC);
 Blinker buzzerBlink(BUZZER_GPIO_Port, BUZZER_Pin, 500 / CHECK_MSEC, 500 / CHECK_MSEC);
-Timer eventTimer(1000/CHECK_MSEC);
-Timer shutdownTimer(1000/CHECK_MSEC);
+Timer eventTimer(1);
+Timer shutdownTimer(1);
 
 TicToc ticToc;
 
@@ -52,6 +52,7 @@ void alarmefrigo_setup()
 //  digitalWrite(GREEN_LED, LOW);
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
+  shutdownTimer.start(1000/CHECK_MSEC);
 }
 
 void alarmefrigo_loop()
@@ -62,19 +63,19 @@ void alarmefrigo_loop()
   buzzerBlink.update();
 
 
-  bool magnetSwitch_state_change = magnetSwitch.updateState();
-  bool pushButton_state_change = pushButton.updateState();
+  int doorswitch_state = doorSwitch.updateState();
+  int pushButton_state = pushButton.updateState();
   bool timeElapsed = eventTimer.update();
 
-  if (magnetSwitch_state_change || pushButton_state_change)
-    shutdownTimer.start(1);
+//  if (doorswitch_state_change || pushButton_state_change)
+//    shutdownTimer.start(1);
 
-  if (!magnetSwitch.state)
+  if (doorswitch_state == 1)
     FSM_DoorOpen();
-  else
+  else if (doorswitch_state == 0)
     FSM_DoorClose();
 
-  if (pushButton.state)
+  if (pushButton_state == 1)
     FSM_UserOveride();
 
   if (timeElapsed)
@@ -83,8 +84,17 @@ void alarmefrigo_loop()
   // Sleep
   ticToc.wait(CHECK_MSEC);
 
-  //if (shutdownTimer.update() && ActState==IDLE)
-  //  suspend();
+  if (shutdownTimer.update() && ActState==IDLE)
+  {
+    suspend();
+    shutdownTimer.start(1000/CHECK_MSEC);
+    doorSwitch.resetCount();
+    pushButton.resetCount();
+  }
+  else
+  {
+	  sleep();
+  }
 }
 
 //****************************************************************************//
@@ -96,7 +106,7 @@ void FSM_prepareWatching (void)
   // blink rled
   // stop buzzer
   // gled off
-  eventTimer.start(10);
+  eventTimer.start(10 * 1000 / CHECK_MSEC);
   redLedBlink.start(500 / CHECK_MSEC, 500 / CHECK_MSEC);
   buzzerBlink.stop();
 //  greenLedBlink.stop();
@@ -113,7 +123,7 @@ void FSM_prepareQuiet (void)
   // blink green led
   // rled off
 
-  eventTimer.start(30 * 60);
+  eventTimer.start(30 * 60 * 1000 / CHECK_MSEC);
   redLedBlink.start(100 / CHECK_MSEC, 500 / CHECK_MSEC);
   buzzerBlink.stop();
 //  greenLedBlink.start();
@@ -134,8 +144,7 @@ void FSM_prepareIdle (void)
     redLedBlink.stop();
     buzzerBlink.stop();
 
-    // TODO:
-    //    suspend();
+    shutdownTimer.start(1000/CHECK_MSEC);
 }
 
 
@@ -149,8 +158,13 @@ void FSM_prepareAlarm (void)
   // gled off
   // rled on
 
-  eventTimer.stop();
-  redLedBlink.stop();
-  buzzerBlink.start();
-//  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+	if (ActState!=DOOROPEN)
+	{
+		eventTimer.stop();
+		redLedBlink.stop();
+		if (false)
+			buzzerBlink.start();
+		else
+			HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
+	}
 }

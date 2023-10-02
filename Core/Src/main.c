@@ -50,6 +50,22 @@ UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
 
+int suspended = 0;
+
+void suspend()
+{
+	HAL_SuspendTick();
+	suspended = 1;
+	HAL_PWREx_EnterSTOP1Mode(PWR_SLEEPENTRY_WFI);
+	suspended = 0;
+	HAL_ResumeTick();
+}
+
+void sleep()
+{
+	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+}
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -390,13 +406,25 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
+  __HAL_RCC_GPIOE_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PA2 PA1 PA15 PA12
+                           PA11 PA8 PA7 PA6
+                           PA5 PA4 PA3 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_1|GPIO_PIN_15|GPIO_PIN_12
+                          |GPIO_PIN_11|GPIO_PIN_8|GPIO_PIN_7|GPIO_PIN_6
+                          |GPIO_PIN_5|GPIO_PIN_4|GPIO_PIN_3;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : BUZZER_Pin */
   GPIO_InitStruct.Pin = BUZZER_Pin;
@@ -405,11 +433,37 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(BUZZER_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : PC3 PC1 PC10 PC11
+                           PC12 PC6 PC13 PC5
+                           PC4 PC9 PC7 PC8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_1|GPIO_PIN_10|GPIO_PIN_11
+                          |GPIO_PIN_12|GPIO_PIN_6|GPIO_PIN_13|GPIO_PIN_5
+                          |GPIO_PIN_4|GPIO_PIN_9|GPIO_PIN_7|GPIO_PIN_8;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
   /*Configure GPIO pin : DOOR_Pin */
   GPIO_InitStruct.Pin = DOOR_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(DOOR_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB9 PB4 PB13 PB14
+                           PB15 PB12 PB1 PB0
+                           PB11 PB10 PB2 */
+  GPIO_InitStruct.Pin = GPIO_PIN_9|GPIO_PIN_4|GPIO_PIN_13|GPIO_PIN_14
+                          |GPIO_PIN_15|GPIO_PIN_12|GPIO_PIN_1|GPIO_PIN_0
+                          |GPIO_PIN_11|GPIO_PIN_10|GPIO_PIN_2;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PH3 PH0 PH1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_3|GPIO_PIN_0|GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB8 PB5 */
   GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_5;
@@ -424,17 +478,54 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : PD0 PD14 PD13 PD12
+                           PD7 PD2 PD3 PD4
+                           PD9 PD8 PD15 PD10
+                           PD5 PD6 PD11 */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_14|GPIO_PIN_13|GPIO_PIN_12
+                          |GPIO_PIN_7|GPIO_PIN_2|GPIO_PIN_3|GPIO_PIN_4
+                          |GPIO_PIN_9|GPIO_PIN_8|GPIO_PIN_15|GPIO_PIN_10
+                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_11;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+
   /*Configure GPIO pin : CTRL_Pin */
   GPIO_InitStruct.Pin = CTRL_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(CTRL_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PE4 PE1 PE3 PE2
+                           PE0 */
+  GPIO_InitStruct.Pin = GPIO_PIN_4|GPIO_PIN_1|GPIO_PIN_3|GPIO_PIN_2
+                          |GPIO_PIN_0;
+  GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI1_IRQn);
+
+  HAL_NVIC_SetPriority(EXTI2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI2_IRQn);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if (suspended && (GPIO_Pin == DOOR_Pin || GPIO_Pin == CTRL_Pin))
+	{
+		// After waking up from SLEEPx, we must reset the clocks.
+		SystemClock_Config();
+		suspended = 0;
+	}
+}
 
 /* USER CODE END 4 */
 
