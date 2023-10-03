@@ -55,7 +55,7 @@ void Error_Handler(void);
 /* USER CODE BEGIN EFP */
 
 void suspend();
-void sleep();
+void sleep(uint32_t time);
 
 /* USER CODE END EFP */
 
@@ -65,6 +65,12 @@ void sleep();
 #define DOOR_Pin GPIO_PIN_2
 #define DOOR_GPIO_Port GPIOC
 #define DOOR_EXTI_IRQn EXTI2_IRQn
+#define TEMP_VAL_Pin GPIO_PIN_0
+#define TEMP_VAL_GPIO_Port GPIOC
+#define TEMP_VCC_Pin GPIO_PIN_8
+#define TEMP_VCC_GPIO_Port GPIOB
+#define LIGHT_IRQ_Pin GPIO_PIN_5
+#define LIGHT_IRQ_GPIO_Port GPIOB
 #define LED_Pin GPIO_PIN_3
 #define LED_GPIO_Port GPIOB
 #define CTRL_Pin GPIO_PIN_1

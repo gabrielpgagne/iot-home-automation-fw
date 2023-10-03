@@ -22,10 +22,23 @@ uint8_t  ActState;
 
 const FSM_STATE_TABLE StateTable [NR_STATES][NR_EVENTS] =
 {
-  FSM_prepareWatching, WATCHING, NULL, IDLE, FSM_prepareQuiet, QUIET, NULL, IDLE,
-  NULL, WATCHING, FSM_prepareIdle, IDLE, FSM_prepareQuiet, QUIET, FSM_prepareAlarm, ALARM,
-  NULL, ALARM, FSM_prepareIdle, IDLE, FSM_prepareQuiet, QUIET, NULL, ALARM,
-  NULL, QUIET, NULL, QUIET, FSM_prepareIdle, IDLE, FSM_prepareIdle, IDLE
+  // State      Event          Function             Next State
+  /* IDLE -     DOOROPEN */    FSM_prepareWatching, WATCHING,
+  /* IDLE -     DOORCLOSE */   NULL,                IDLE,
+  /* IDLE -     USEROVERIDE */ FSM_prepareQuiet,    QUIET,
+  /* IDLE -     TIMER */       NULL,                IDLE,
+  /* WATCHING - DOOROPEN */    NULL,                WATCHING,
+  /* WATCHING - DOORCLOSE */   FSM_prepareIdle,     IDLE,
+  /* WATCHING - USEROVERIDE */ FSM_prepareQuiet,    QUIET,
+  /* WATCHING - TIMER */       FSM_prepareAlarm,    ALARM,
+  /* ALARM -    DOOROPEN */    NULL,                ALARM,
+  /* ALARM -    DOORCLOSE */   FSM_prepareIdle,     IDLE,
+  /* ALARM -    USEROVERIDE */ FSM_prepareQuiet,    QUIET,
+  /* ALARM -    TIMER */       NULL,                ALARM,
+  /* QUIET -    DOOROPEN */    NULL,                QUIET,
+  /* QUIET -    DOORCLOSE */   NULL,                QUIET,
+  /* QUIET -    USEROVERIDE */ FSM_prepareIdle,     IDLE,
+  /* QUIET -    TIMER */       FSM_prepareIdle,     IDLE
 };
 
 

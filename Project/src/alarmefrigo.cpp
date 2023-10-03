@@ -18,7 +18,6 @@ unsigned long elapsed_time(bool reset = true);
 class Debouncer;
 
 
-
 Debouncer doorSwitch(DOOR_GPIO_Port, DOOR_Pin);
 Debouncer pushButton(CTRL_GPIO_Port, CTRL_Pin);
 
@@ -32,24 +31,16 @@ TicToc ticToc;
 
 void alarmefrigo_setup()
 {
-
   // Green light to show that we are working.
   ticToc.tic();
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_SET);
 
-//  digitalWrite(GREEN_LED, HIGH);
-
-  // Wakeup if magnet switch close or button pressed
-  //pinMode(magnetSwitchPin, INPUT_PULLUP);
-  //attachInterrupt(magnetSwitchPin, buttonISR, CHANGE);
-  //attachInterrupt(PUSH2, buttonISR, CHANGE);
 
   FSM_Init();
 
   ticToc.wait(5000);
 
   // We can now turn off the green light.
-//  digitalWrite(GREEN_LED, LOW);
   HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
 
   shutdownTimer.start(1000/CHECK_MSEC);
@@ -67,8 +58,8 @@ void alarmefrigo_loop()
   int pushButton_state = pushButton.updateState();
   bool timeElapsed = eventTimer.update();
 
-//  if (doorswitch_state_change || pushButton_state_change)
-//    shutdownTimer.start(1);
+  // Something will happen
+  bool buttons_active = doorswitch_state==-1 || pushButton_state==-1;
 
   if (doorswitch_state == 1)
     FSM_DoorOpen();
@@ -81,19 +72,19 @@ void alarmefrigo_loop()
   if (timeElapsed)
     FSM_Timer();
 
-  // Sleep
-  ticToc.wait(CHECK_MSEC);
 
-  if (shutdownTimer.update() && ActState==IDLE)
+  if (shutdownTimer.update() && ActState==IDLE && !buttons_active)
   {
-    suspend();
-    shutdownTimer.start(1000/CHECK_MSEC);
-    doorSwitch.resetCount();
-    pushButton.resetCount();
+	  // Got to deep sleep until something happens.
+	  suspend();
+	  shutdownTimer.start(1000/CHECK_MSEC);
+	  doorSwitch.resetCount();
+	  pushButton.resetCount();
   }
   else
   {
-	  sleep();
+	  // Sleep for the next CHECK_MSEC
+	  ticToc.wait(CHECK_MSEC);
   }
 }
 
@@ -124,7 +115,7 @@ void FSM_prepareQuiet (void)
   // rled off
 
   eventTimer.start(30 * 60 * 1000 / CHECK_MSEC);
-  redLedBlink.start(100 / CHECK_MSEC, 500 / CHECK_MSEC);
+  redLedBlink.start(50 / CHECK_MSEC, 1000 / CHECK_MSEC);
   buzzerBlink.stop();
 //  greenLedBlink.start();
 }

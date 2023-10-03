@@ -56,14 +56,15 @@ void suspend()
 {
 	HAL_SuspendTick();
 	suspended = 1;
-	HAL_PWREx_EnterSTOP1Mode(PWR_SLEEPENTRY_WFI);
+	HAL_PWREx_EnterSTOP2Mode(PWR_SLEEPENTRY_WFI);
 	suspended = 0;
 	HAL_ResumeTick();
 }
 
-void sleep()
+void sleep(uint32_t time)
 {
-	HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
+	for (int t=0; t<time; ++t)
+		HAL_PWR_EnterSLEEPMode(PWR_MAINREGULATOR_ON, PWR_SLEEPENTRY_WFI);
 }
 
 /* USER CODE END PV */
@@ -414,7 +415,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LED_GPIO_Port, LED_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, TEMP_VCC_Pin|LED_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PA2 PA1 PA15 PA12
                            PA11 PA8 PA7 PA6
@@ -465,18 +466,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB8 PB5 */
-  GPIO_InitStruct.Pin = GPIO_PIN_8|GPIO_PIN_5;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : LED_Pin */
-  GPIO_InitStruct.Pin = LED_Pin;
+  /*Configure GPIO pins : TEMP_VCC_Pin LED_Pin */
+  GPIO_InitStruct.Pin = TEMP_VCC_Pin|LED_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LED_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LIGHT_IRQ_Pin */
+  GPIO_InitStruct.Pin = LIGHT_IRQ_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(LIGHT_IRQ_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PD0 PD14 PD13 PD12
                            PD7 PD2 PD3 PD4
