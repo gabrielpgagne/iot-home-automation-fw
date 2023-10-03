@@ -21,8 +21,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 #include "alarmefrigo.h"
+#include "shtc3.h"
 
 /* USER CODE END Includes */
 
@@ -33,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+float readVbatt(void);
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -49,6 +50,18 @@ I2C_HandleTypeDef hi2c1;
 UART_HandleTypeDef huart1;
 
 /* USER CODE BEGIN PV */
+
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
+
+PUTCHAR_PROTOTYPE
+{
+  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+  return ch;
+}
 
 int suspended = 0;
 
@@ -124,7 +137,23 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
 
+  SHTC3_Init(SHTC3_I2C_ADDR << 1, &hi2c1);
+  SHTC3_Wakeup();
+
   alarmefrigo_setup();
+
+  float temp, humi, vbatt;
+  while (1){
+	  SHTC3_GetTempAndHumiPolling(&temp, &humi);
+	  vbatt = readVbatt();
+  }
+  printf("temperature %4.2f C", temp);
+  printf("humidity %4.2f", humi);
+  printf("vbatt %4.2f", vbatt);
+
+  HAL_Delay(1000);
+
+  SHTC3_Sleep();
 
   /* USER CODE END 2 */
 
@@ -135,6 +164,7 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
 	alarmefrigo_loop();
   }
   /* USER CODE END 3 */
@@ -528,6 +558,54 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	}
 }
 
+float readVbatt(void)
+{
+	// Since I'm dumb I messed up VCC things so we have to hijack PA0 for analog input and derive VCC from it.
+	// KNOWN: Rvcc = 220K, Radc ~= 50K and we can measure Vpin. Then simple voltage divider !
+
+	// Reconfigure ADC1 to use PA0
+
+	GPIO_InitTypeDef gpio_struct = {
+			.Pin = GPIO_PIN_0,
+			.Mode = GPIO_MODE_ANALOG
+	};
+	HAL_GPIO_Init(GPIOA, &gpio_struct);
+
+	HAL_ADC_Stop(&hadc1);
+	ADC_ChannelConfTypeDef sConfig = {0};
+	sConfig.Channel = ADC_CHANNEL_5;
+	sConfig.Rank = ADC_REGULAR_RANK_1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+	sConfig.SingleDiff = ADC_SINGLE_ENDED;
+	sConfig.OffsetNumber = ADC_OFFSET_NONE;
+	sConfig.Offset = 0;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	HAL_ADC_Start(&hadc1);
+
+	HAL_ADC_PollForConversion(&hadc1, 100);
+	uint32_t val = HAL_ADC_GetValue(&hadc1);
+
+	// restore initial params
+	HAL_ADC_Stop(&hadc1);
+
+	gpio_struct.Mode = GPIO_MODE_OUTPUT_PP;
+	HAL_GPIO_Init(GPIOA, &gpio_struct);
+
+	sConfig.Channel = ADC_CHANNEL_1;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+	HAL_ADC_Start(&hadc1);
+
+	float vpin = 1.8*(float)val/(1<<12);
+	float fact = (float)(44+220)/44;
+
+	return vpin*fact;
+}
 /* USER CODE END 4 */
 
 /**
