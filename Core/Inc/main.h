@@ -54,7 +54,7 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 
-void suspend();
+void suspend(int mode);
 void sleep(uint32_t time);
 
 /* USER CODE END EFP */

@@ -25,19 +25,23 @@ const FSM_STATE_TABLE StateTable [NR_STATES][NR_EVENTS] =
   // State      Event          Function             Next State
   /* IDLE -     DOOROPEN */    FSM_prepareWatching, WATCHING,
   /* IDLE -     DOORCLOSE */   NULL,                IDLE,
-  /* IDLE -     USEROVERIDE */ FSM_prepareQuiet,    QUIET,
+  /* IDLE -     USERPRESS */   FSM_prepareQuiet,    QUIET,
+  /* IDLE -     USERRELEASE */ FSM_userRelease,    	IDLE,
   /* IDLE -     TIMER */       NULL,                IDLE,
   /* WATCHING - DOOROPEN */    NULL,                WATCHING,
   /* WATCHING - DOORCLOSE */   FSM_prepareIdle,     IDLE,
-  /* WATCHING - USEROVERIDE */ FSM_prepareQuiet,    QUIET,
+  /* WATCHING - USERPRESS */   FSM_prepareQuiet,    QUIET,
+  /* WATCHING - USERRELEASE */ FSM_userRelease,    	WATCHING,
   /* WATCHING - TIMER */       FSM_prepareAlarm,    ALARM,
   /* ALARM -    DOOROPEN */    NULL,                ALARM,
   /* ALARM -    DOORCLOSE */   FSM_prepareIdle,     IDLE,
-  /* ALARM -    USEROVERIDE */ FSM_prepareQuiet,    QUIET,
+  /* ALARM -    USERPRESS */   FSM_prepareQuiet,    QUIET,
+  /* ALARM -    USERRELEASE */ FSM_userRelease,     ALARM,
   /* ALARM -    TIMER */       NULL,                ALARM,
   /* QUIET -    DOOROPEN */    NULL,                QUIET,
   /* QUIET -    DOORCLOSE */   NULL,                QUIET,
-  /* QUIET -    USEROVERIDE */ FSM_prepareIdle,     IDLE,
+  /* QUIET -    USERPRESS */   FSM_prepareIdle,     IDLE,
+  /* QUIET -    USERRELEASE */ FSM_userRelease, 	QUIET,
   /* QUIET -    TIMER */       FSM_prepareIdle,     IDLE
 };
 
@@ -76,16 +80,26 @@ void FSM_DoorClose (void)
 
 
 //****************************************************************************//
-// Event function "UserOveride"
+// Event function "UserPress"
 //****************************************************************************//
-void FSM_UserOveride (void)
+void FSM_UserPress (void)
 {
-  if (StateTable[ActState][USEROVERIDE].ptrFunct != NULL)
-    StateTable[ActState][USEROVERIDE].ptrFunct();
+  if (StateTable[ActState][USERPRESS].ptrFunct != NULL)
+    StateTable[ActState][USERPRESS].ptrFunct();
 
-  ActState = StateTable[ActState][USEROVERIDE].NextState;
+  ActState = StateTable[ActState][USERPRESS].NextState;
 }
 
+//****************************************************************************//
+// Event function "UserPress"
+//****************************************************************************//
+void FSM_UserRelease (void)
+{
+  if (StateTable[ActState][USERRELEASE].ptrFunct != NULL)
+    StateTable[ActState][USERRELEASE].ptrFunct();
+
+  ActState = StateTable[ActState][USERRELEASE].NextState;
+}
 
 //****************************************************************************//
 // Event function "Timer"

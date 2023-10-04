@@ -26,11 +26,12 @@ typedef struct
 extern uint8_t ActState;
 
 
-#define NR_EVENTS 4
+#define NR_EVENTS 5
 #define DOOROPEN  0
 #define DOORCLOSE  1
-#define USEROVERIDE  2
-#define TIMER  3
+#define USERPRESS  2
+#define USERRELEASE  3
+#define TIMER  4
 
 #define NR_STATES 4
 #define IDLE  0
@@ -51,8 +52,11 @@ void FSM_DoorOpen (void);
 // Event function "DoorClose"
 void FSM_DoorClose (void);
 
-// Event function "UserOveride"
-void FSM_UserOveride (void);
+// Event function "UserPress"
+void FSM_UserPress (void);
+
+// Event function "UserPress"
+void FSM_UserRelease (void);
 
 // Event function "Timer"
 void FSM_Timer (void);
@@ -62,6 +66,8 @@ void FSM_prepareWatching (void);
 
 // Transition function "prepareQuiet"
 void FSM_prepareQuiet (void);
+
+void FSM_userRelease(void);
 
 // Transition function "prepareIdle"
 void FSM_prepareIdle (void);

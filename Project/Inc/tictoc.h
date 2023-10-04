@@ -7,7 +7,10 @@ protected:
 	uint32_t start;
 
 public:
-	TicToc() : start(0) {}
+	TicToc() :
+		start(0)
+	{
+	}
 
 	void tic()
 	{
@@ -19,14 +22,13 @@ public:
 		return HAL_GetTick() - start;
 	}
 
-  
-	void wait(uint32_t wait_delay, bool hardware_delay=true)
+	void wait(uint32_t wait_delay, bool hardware_delay = true)
 	{
 		uint32_t elapsed = toc();
 		if (elapsed < wait_delay)
 		{
-			uint32_t delay = wait_delay-elapsed;
-			if (delay>0)
+			uint32_t delay = wait_delay - elapsed;
+			if (delay > 0)
 			{
 				hardware_delay ? sleep(delay) : HAL_Delay(delay);
 			}
