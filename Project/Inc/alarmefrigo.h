@@ -8,18 +8,16 @@
 #ifndef ALARMEFRIGO_H_
 #define ALARMEFRIGO_H_
 
-
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
 
-void alarmefrigo_setup(void);
-void alarmefrigo_loop(void);
+    void alarmefrigo_setup(void);
+    void alarmefrigo_loop(void);
 
 #ifdef __cplusplus
 }
 #endif
-
-
 
 #endif /* ALARMEFRIGO_H_ */

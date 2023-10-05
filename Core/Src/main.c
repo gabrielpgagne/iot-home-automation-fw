@@ -59,7 +59,7 @@ UART_HandleTypeDef huart1;
 
 PUTCHAR_PROTOTYPE
 {
-	HAL_UART_Transmit(&huart1, (uint8_t*) &ch, 1, HAL_MAX_DELAY);
+	HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
 	return ch;
 }
 
@@ -77,12 +77,12 @@ void suspend(int mode)
 	// Shutdown RF coprocessor.
 	LL_C2_PWR_SetPowerMode(LL_PWR_MODE_STOP2);
 
-	while(1)
+	while (1)
 	{
 		// Shutdown CPU.
 		HAL_PWREx_EnterSTOP2Mode(PWR_SLEEPENTRY_WFI);
 
-		if (suspended==0)
+		if (suspended == 0)
 			break;
 	}
 
@@ -194,9 +194,9 @@ int main(void)
 void SystemClock_Config(void)
 {
 	RCC_OscInitTypeDef RCC_OscInitStruct =
-	{ 0 };
+		{0};
 	RCC_ClkInitTypeDef RCC_ClkInitStruct =
-	{ 0 };
+		{0};
 
 	/** Macro to configure the PLL multiplication factor
 	 */
@@ -213,8 +213,7 @@ void SystemClock_Config(void)
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
 	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI
-			| RCC_OSCILLATORTYPE_MSI;
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_MSI;
 	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
 	RCC_OscInitStruct.MSIState = RCC_MSI_ON;
 	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
@@ -228,9 +227,7 @@ void SystemClock_Config(void)
 
 	/** Configure the SYSCLKSource, HCLK, PCLK1 and PCLK2 clocks dividers
 	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK4 | RCC_CLOCKTYPE_HCLK2
-			| RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1
-			| RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK4 | RCC_CLOCKTYPE_HCLK2 | RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
 	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
 	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
 	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
@@ -251,7 +248,7 @@ void SystemClock_Config(void)
 void PeriphCommonClock_Config(void)
 {
 	RCC_PeriphCLKInitTypeDef PeriphClkInitStruct =
-	{ 0 };
+		{0};
 
 	/** Initializes the peripherals clock
 	 */
@@ -281,7 +278,7 @@ static void MX_ADC1_Init(void)
 	/* USER CODE END ADC1_Init 0 */
 
 	ADC_ChannelConfTypeDef sConfig =
-	{ 0 };
+		{0};
 
 	/* USER CODE BEGIN ADC1_Init 1 */
 
@@ -324,7 +321,6 @@ static void MX_ADC1_Init(void)
 	/* USER CODE BEGIN ADC1_Init 2 */
 
 	/* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
@@ -372,7 +368,6 @@ static void MX_I2C1_Init(void)
 	/* USER CODE BEGIN I2C1_Init 2 */
 
 	/* USER CODE END I2C1_Init 2 */
-
 }
 
 /**
@@ -393,7 +388,6 @@ static void MX_MEMORYMAP_Init(void)
 	/* USER CODE BEGIN MEMORYMAP_Init 2 */
 
 	/* USER CODE END MEMORYMAP_Init 2 */
-
 }
 
 /**
@@ -426,13 +420,11 @@ static void MX_USART1_UART_Init(void)
 	{
 		Error_Handler();
 	}
-	if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8)
-			!= HAL_OK)
+	if (HAL_UARTEx_SetTxFifoThreshold(&huart1, UART_TXFIFO_THRESHOLD_1_8) != HAL_OK)
 	{
 		Error_Handler();
 	}
-	if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8)
-			!= HAL_OK)
+	if (HAL_UARTEx_SetRxFifoThreshold(&huart1, UART_RXFIFO_THRESHOLD_1_8) != HAL_OK)
 	{
 		Error_Handler();
 	}
@@ -443,7 +435,6 @@ static void MX_USART1_UART_Init(void)
 	/* USER CODE BEGIN USART1_Init 2 */
 
 	/* USER CODE END USART1_Init 2 */
-
 }
 
 /**
@@ -454,7 +445,7 @@ static void MX_USART1_UART_Init(void)
 static void MX_GPIO_Init(void)
 {
 	GPIO_InitTypeDef GPIO_InitStruct =
-	{ 0 };
+		{0};
 	/* USER CODE BEGIN MX_GPIO_Init_1 */
 	/* USER CODE END MX_GPIO_Init_1 */
 
@@ -475,9 +466,7 @@ static void MX_GPIO_Init(void)
 	/*Configure GPIO pins : PA2 PA1 PA15 PA12
 	 PA11 PA8 PA7 PA6
 	 PA5 PA4 PA3 */
-	GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_15 | GPIO_PIN_12
-			| GPIO_PIN_11 | GPIO_PIN_8 | GPIO_PIN_7 | GPIO_PIN_6 | GPIO_PIN_5
-			| GPIO_PIN_4 | GPIO_PIN_3;
+	GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_1 | GPIO_PIN_15 | GPIO_PIN_12 | GPIO_PIN_11 | GPIO_PIN_8 | GPIO_PIN_7 | GPIO_PIN_6 | GPIO_PIN_5 | GPIO_PIN_4 | GPIO_PIN_3;
 	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -492,9 +481,7 @@ static void MX_GPIO_Init(void)
 	/*Configure GPIO pins : PC3 PC1 PC10 PC11
 	 PC12 PC6 PC13 PC5
 	 PC4 PC9 PC7 PC8 */
-	GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_1 | GPIO_PIN_10 | GPIO_PIN_11
-			| GPIO_PIN_12 | GPIO_PIN_6 | GPIO_PIN_13 | GPIO_PIN_5 | GPIO_PIN_4
-			| GPIO_PIN_9 | GPIO_PIN_7 | GPIO_PIN_8;
+	GPIO_InitStruct.Pin = GPIO_PIN_3 | GPIO_PIN_1 | GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_6 | GPIO_PIN_13 | GPIO_PIN_5 | GPIO_PIN_4 | GPIO_PIN_9 | GPIO_PIN_7 | GPIO_PIN_8;
 	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
@@ -508,9 +495,7 @@ static void MX_GPIO_Init(void)
 	/*Configure GPIO pins : PB9 PB4 PB13 PB14
 	 PB15 PB12 PB1 PB0
 	 PB11 PB10 PB2 */
-	GPIO_InitStruct.Pin = GPIO_PIN_9 | GPIO_PIN_4 | GPIO_PIN_13 | GPIO_PIN_14
-			| GPIO_PIN_15 | GPIO_PIN_12 | GPIO_PIN_1 | GPIO_PIN_0 | GPIO_PIN_11
-			| GPIO_PIN_10 | GPIO_PIN_2;
+	GPIO_InitStruct.Pin = GPIO_PIN_9 | GPIO_PIN_4 | GPIO_PIN_13 | GPIO_PIN_14 | GPIO_PIN_15 | GPIO_PIN_12 | GPIO_PIN_1 | GPIO_PIN_0 | GPIO_PIN_11 | GPIO_PIN_10 | GPIO_PIN_2;
 	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
@@ -538,10 +523,7 @@ static void MX_GPIO_Init(void)
 	 PD7 PD2 PD3 PD4
 	 PD9 PD8 PD15 PD10
 	 PD5 PD6 PD11 */
-	GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_14 | GPIO_PIN_13 | GPIO_PIN_12
-			| GPIO_PIN_7 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_9
-			| GPIO_PIN_8 | GPIO_PIN_15 | GPIO_PIN_10 | GPIO_PIN_5 | GPIO_PIN_6
-			| GPIO_PIN_11;
+	GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_14 | GPIO_PIN_13 | GPIO_PIN_12 | GPIO_PIN_7 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_9 | GPIO_PIN_8 | GPIO_PIN_15 | GPIO_PIN_10 | GPIO_PIN_5 | GPIO_PIN_6 | GPIO_PIN_11;
 	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
@@ -554,8 +536,7 @@ static void MX_GPIO_Init(void)
 
 	/*Configure GPIO pins : PE4 PE1 PE3 PE2
 	 PE0 */
-	GPIO_InitStruct.Pin = GPIO_PIN_4 | GPIO_PIN_1 | GPIO_PIN_3 | GPIO_PIN_2
-			| GPIO_PIN_0;
+	GPIO_InitStruct.Pin = GPIO_PIN_4 | GPIO_PIN_1 | GPIO_PIN_3 | GPIO_PIN_2 | GPIO_PIN_0;
 	GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -575,8 +556,7 @@ static void MX_GPIO_Init(void)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	if ((suspended ==1 && (GPIO_Pin == DOOR_Pin || GPIO_Pin == CTRL_Pin))
-		|| (suspended == 2 && GPIO_Pin == CTRL_Pin))
+	if ((suspended == 1 && (GPIO_Pin == DOOR_Pin || GPIO_Pin == CTRL_Pin)) || (suspended == 2 && GPIO_Pin == CTRL_Pin))
 	{
 		// After waking up from SLEEPx, we must reset the clocks.
 		SystemClock_Config();
@@ -594,12 +574,12 @@ float readVbatt(void)
 	// Reconfigure ADC1 to use PA0
 
 	GPIO_InitTypeDef gpio_struct =
-	{ .Pin = GPIO_PIN_0, .Mode = GPIO_MODE_ANALOG };
+		{.Pin = GPIO_PIN_0, .Mode = GPIO_MODE_ANALOG};
 	HAL_GPIO_Init(GPIOA, &gpio_struct);
 
 	HAL_ADC_Stop(&hadc1);
 	ADC_ChannelConfTypeDef sConfig =
-	{ 0 };
+		{0};
 	sConfig.Channel = ADC_CHANNEL_5;
 	sConfig.Rank = ADC_REGULAR_RANK_1;
 	sConfig.SamplingTime = ADC_SAMPLETIME_2CYCLES_5;
@@ -628,8 +608,8 @@ float readVbatt(void)
 	}
 	HAL_ADC_Start(&hadc1);
 
-	float vpin = 1.8 * (float) val / (1 << 12);
-	float fact = (float) (44 + 220) / 44;
+	float vpin = 1.8 * (float)val / (1 << 12);
+	float fact = (float)(44 + 220) / 44;
 
 	return vpin * fact;
 }
@@ -650,7 +630,7 @@ void Error_Handler(void)
 	/* USER CODE END Error_Handler_Debug */
 }
 
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
  * @brief  Reports the name of the source file and the source line number
  *         where the assert_param error has occurred.
@@ -662,7 +642,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
 	/* USER CODE BEGIN 6 */
 	/* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	 ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
 	/* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

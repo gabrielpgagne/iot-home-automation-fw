@@ -10,8 +10,7 @@ protected:
 	bool enabled_;
 
 public:
-	Timer(unsigned long divider) :
-		divider_(divider), divider_count_(0), count_(0), enabled_(false)
+	Timer(unsigned long divider) : divider_(divider), divider_count_(0), count_(0), enabled_(false)
 	{
 	}
 

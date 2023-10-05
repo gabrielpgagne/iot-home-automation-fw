@@ -7,8 +7,7 @@ protected:
 	uint32_t start;
 
 public:
-	TicToc() :
-		start(0)
+	TicToc() : start(0)
 	{
 	}
 

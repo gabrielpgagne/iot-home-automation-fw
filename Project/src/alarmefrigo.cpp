@@ -21,7 +21,7 @@ Debouncer pushButton(CTRL_GPIO_Port, CTRL_Pin);
 
 Blinker redLedBlink(LED_GPIO_Port, LED_Pin, 500 / CHECK_MSEC, 500 / CHECK_MSEC);
 Blinker buzzerBlink(BUZZER_GPIO_Port, BUZZER_Pin, 500 / CHECK_MSEC,
-		500 / CHECK_MSEC);
+					500 / CHECK_MSEC);
 Timer eventTimer(1);
 Timer shutdownTimer(1);
 Timer powerOffTimer(1);
