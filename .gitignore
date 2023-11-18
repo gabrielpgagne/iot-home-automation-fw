@@ -3,3 +3,10 @@ Debug/
 Release/
 .settings/
 .DS_Store
+zephyr/bin
+zephyr/build
+zephyr/include
+zephyr/lib
+zephyr/lib64
+zephyr/.cache
+zephyr/pyvenv.cfg
