@@ -1,2 +1,0 @@
-bleak==0.21.1
-TheengsDecoder==1.6.3

@@ -1,27 +1,23 @@
-.. _bluetooth-broadcaster-sample:
+.. _bluetooth-bthome-sensor-template-sample:
 
-Bluetooth: Broadcaster
-###########################
+Bluetooth: BTHome sensor template
+#################################
 
-Overview
-********
-
-A simple application demonstrating Bluetooth Low Energy Broadcaster role functionality.
-The application will periodically send out advertising packets with
-a manufacturer data element. The content of the data is a single byte
-indicating how many advertising packets the device has sent
-(the number will roll back to 0 after 255).
+Template for a `BTHome <https://bthome.io/>`_ sensor.
 
 Requirements
 ************
 
-* BlueZ running on the host, or
 * A board with BLE support
+* A BTHome compatible listener, for example `Home Assistant <https://www.home-assistant.io/>`_ with the BTHome integration running.
 
 Building and Running
 ********************
 
-This sample can be found under :zephyr_file:`samples/bluetooth/broadcaster` in the
-Zephyr tree.
+This sample can be found under :zephyr_file:`samples/bluetooth/bthome_sensor_template` in the Zephyr tree.
 
 See :ref:`bluetooth samples section <bluetooth-samples>` for details.
+
+When the sample is running, navigate to Devices & Services under settings in Home
+Assistant. There you will be asked to configure the BTHome sensor if everything
+went well.
