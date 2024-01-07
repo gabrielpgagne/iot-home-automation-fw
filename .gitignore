@@ -1,6 +1,7 @@
 .metadata/
 Debug/
 Release/
+workspace/
 .settings/
 .DS_Store
 zephyr/bin
