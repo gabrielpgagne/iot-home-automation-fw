@@ -9,7 +9,7 @@
             "request": "launch",
             "type": "cortex-debug",
             "runToEntryPoint": "main",
-            "servertype": "jlink",
+            "servertype": "stlink",
             "gdbPath": "${userHome}/zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
             "preLaunchTask": "West Build"
         },
@@ -21,7 +21,7 @@
             "request": "attach",
             "type": "cortex-debug",
             "runToEntryPoint": "main",
-            "servertype": "jlink",
+            "servertype": "stlink",
             "gdbPath": "${userHome}/zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb"
         },
     ]

@@ -8,5 +8,8 @@
 
 		// File Associations
 		"files.associations": {
-		}
+		},
+
+		// Auto activate environement
+		"python.terminal.activateEnvironment": true,
 }
