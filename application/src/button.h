@@ -10,6 +10,6 @@ enum button_evt {
 
 typedef void (*button_event_handler_t)(enum button_evt evt);
 
-int button_init(onst struct gpio_dt_spec * button, button_event_handler_t handler);
+int button_init(const struct gpio_dt_spec * button, button_event_handler_t handler);
 
 #endif /* _BUTTON_H_ */
