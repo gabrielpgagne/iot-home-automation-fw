@@ -22,6 +22,25 @@ static void cooldown_expired(struct k_work *work)
 
 static K_WORK_DELAYABLE_DEFINE(cooldown_work, cooldown_expired);
 
+/**
+void work_handler(struct k_work *work)
+{
+    int *user_data = (int *)work->user_data;
+    printk("User data: %d\n", *user_data);
+}
+
+struct k_work_user work;
+int user_data = 42;
+
+void main(void)
+{
+    k_work_user_init(&work, work_handler);
+    work.user_data = &user_data;
+
+    k_work_reschedule(&work->work, K_SECONDS(5));
+}
+*/
+
 void button_pressed(const struct device *dev, struct gpio_callback *cb,
 		    uint32_t pins)
 {
