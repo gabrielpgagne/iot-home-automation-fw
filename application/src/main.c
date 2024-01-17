@@ -174,27 +174,27 @@ int main(void) {
 
   printk("Hello !\n");
 
-  // // ----- Init Door Switch + IRQ -----
-  // err = gpio_pin_configure_dt(&door_sw, GPIO_INPUT);
-  // err = gpio_pin_interrupt_configure_dt(&door_sw, GPIO_INT_EDGE_BOTH);
-  // if (err != 0) {
-  //   printk("Error %d: failed to configure interrupt on %s pin %d\n", err,
-  //          door_sw.port->name, door_sw.pin);
-  //   return err;
-  // }
-  // gpio_init_callback(&door_cb, door_state_change, BIT(door_sw.pin));
-  // gpio_add_callback(door_sw.port, &door_cb);
+  // ----- Init Door Switch + IRQ -----
+  err = gpio_pin_configure_dt(&door_sw, GPIO_INPUT);
+  err = gpio_pin_interrupt_configure_dt(&door_sw, GPIO_INT_EDGE_BOTH);
+  if (err != 0) {
+    printk("Error %d: failed to configure interrupt on %s pin %d\n", err,
+           door_sw.port->name, door_sw.pin);
+    return err;
+  }
+  gpio_init_callback(&door_cb, door_state_change, BIT(door_sw.pin));
+  gpio_add_callback(door_sw.port, &door_cb);
 
   // ----- Init CTRL Button + IRQ -----
-  // err = gpio_pin_configure_dt(&ctrl_btn, GPIO_INPUT | GPIO_PULL_DOWN);
-  // err = gpio_pin_interrupt_configure_dt(&ctrl_btn, GPIO_INT_EDGE_BOTH);
-  // if (err != 0) {
-  //   printk("Error %d: failed to configure interrupt on %s pin %d\n", err,
-  //          ctrl_btn.port->name, ctrl_btn.pin);
-  //   return err;
-  // }
-  // gpio_init_callback(&ctrl_cb, ctrl_button_pressed, BIT(ctrl_btn.pin));
-  // gpio_add_callback(ctrl_btn.port, &ctrl_cb);
+  err = gpio_pin_configure_dt(&ctrl_btn, GPIO_INPUT | GPIO_PULL_DOWN);
+  err = gpio_pin_interrupt_configure_dt(&ctrl_btn, GPIO_INT_EDGE_BOTH);
+  if (err != 0) {
+    printk("Error %d: failed to configure interrupt on %s pin %d\n", err,
+           ctrl_btn.port->name, ctrl_btn.pin);
+    return err;
+  }
+  gpio_init_callback(&ctrl_cb, ctrl_button_pressed, BIT(ctrl_btn.pin));
+  gpio_add_callback(ctrl_btn.port, &ctrl_cb);
  
   // ----- Init Buzzer -----
   gpio_pin_configure_dt(&buzzer, GPIO_OUTPUT);
@@ -213,12 +213,6 @@ int main(void) {
   } else {
    printk("Found device %s. Reading sensor data\n", sht->name);
   }
-
-  
-  // while (1) {
-  //   ;
-  // }
-  // ----- Init BLE -----
  
   printk("CONFIG_BT_DEVICE_NAME: %s\n", CONFIG_BT_DEVICE_NAME);
   err = bt_enable(NULL);

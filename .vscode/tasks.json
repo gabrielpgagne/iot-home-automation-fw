@@ -38,7 +38,7 @@
 				"${input:pristine}",
 				"-b",
 				"${input:board}",
-				"application"
+				"${input:target}"
 			],
 			"problemMatcher": [
 				"$gcc"
@@ -81,6 +81,12 @@
 				"always",
 				"never"
 			]
+		}
+		{
+			"id": "target",
+			"type": "promptString",
+			"description": "Project to build",
+			"default": "application",
 		}
 	]
 }

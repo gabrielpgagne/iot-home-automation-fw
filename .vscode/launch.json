@@ -2,7 +2,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch",
+            "name": "Launch Application",
             "device": "nucleo_wb55rg",
             "cwd": "${workspaceFolder}",
             "executable": "build/zephyr/zephyr.elf",
@@ -12,6 +12,17 @@
             "servertype": "stlink",
             "gdbPath": "${userHome}/zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
             "preLaunchTask": "West Build"
+        },
+        {
+            "name": "Launch Current",
+            "device": "nucleo_wb55rg",
+            "cwd": "${workspaceFolder}",
+            "executable": "build/zephyr/zephyr.elf",
+            "request": "launch",
+            "type": "cortex-debug",
+            "runToEntryPoint": "main",
+            "servertype": "stlink",
+            "gdbPath": "${userHome}/zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
         },
         {
             "name": "Attach",
