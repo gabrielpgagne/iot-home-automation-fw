@@ -1,0 +1,86 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "West Build",
+			"type": "shell",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"command": "${command:python.interpreterPath}",
+			"args": [
+				"-m",
+				"west",
+				"build",
+				"-p",
+				"auto",
+				"-b",
+				"nucleo_wb55rg",
+				"application"
+			],
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"label": "West Configurable Build",
+			"type": "shell",
+			"group": {
+				"kind": "build",
+			},
+			"command": "${command:python.interpreterPath}",
+			"args": [
+				"-m",
+				"west",
+				"build",
+				"-p",
+				"${input:pristine}",
+				"-b",
+				"${input:board}",
+				"application"
+			],
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"label": "West Flash",
+			"type": "shell",
+			"linux": {
+				"command": "${userHome}/zephyrproject/.venv/bin/west"
+			},
+			"windows": {
+				"command": "${userHome}/zephyrproject/.venv/Scripts/west.exe"
+			},
+			"osx": {
+				"command": "${userHome}/zephyrproject/.venv/bin/west"
+			},
+			"args": [
+				"flash"
+			],
+			"problemMatcher": [
+				"$gcc"
+			]
+		}
+	],
+	"inputs": [
+		{
+			"id": "board",
+			"type": "promptString",
+			"default": "nucleo_wb55rg",
+			"description": "See https://docs.zephyrproject.org/latest/boards/index.html"
+		},
+		{
+			"id": "pristine",
+			"type": "pickString",
+			"description": "Choose when to run a pristine build",
+			"default": "auto",
+			"options": [
+				"auto",
+				"always",
+				"never"
+			]
+		}
+	]
+}
