@@ -3,6 +3,16 @@
 #ifndef _BUTTON_H_
 #define _BUTTON_H_
 
+#include "zephyr/dt-bindings/gpio/gpio.h"
+#include "zephyr/sys/time_units.h"
+#include <zephyr/device.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/i2c.h>
+#include <zephyr/drivers/sensor.h>
+#include <zephyr/kernel.h>
+
+
 enum button_evt {
     BUTTON_EVT_PRESSED,
     BUTTON_EVT_RELEASED

@@ -7,7 +7,10 @@
 
 #include <zephyr/kernel.h>
 
-#include "button.h"
+//#include <zephyr/logging/log.h>
+//LOG_MODULE_REGISTER(main, CONFIG_APP_LOG_LEVEL);
+
+#include <button.h>
 
 #define DOOR DT_ALIAS(sw0)
 #define CTRL DT_ALIAS(sw1)

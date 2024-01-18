@@ -17,6 +17,8 @@
 #include <zephyr/bluetooth/gap.h>
 #include <zephyr/bluetooth/uuid.h>
 
+#include <button.h>
+
 /*
  ***************************************************************************
  * Device tree definitions

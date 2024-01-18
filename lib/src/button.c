@@ -3,16 +3,6 @@
 // #include <drivers/gpio.h>
 // #include <sys/printk.h>
 
-#include "zephyr/dt-bindings/gpio/gpio.h"
-#include "zephyr/sys/time_units.h"
-#include <zephyr/device.h>
-#include <zephyr/devicetree.h>
-#include <zephyr/drivers/gpio.h>
-#include <zephyr/drivers/i2c.h>
-#include <zephyr/drivers/sensor.h>
-#include <zephyr/kernel.h>
-
-
 #include "button.h"
 
 #define DEBOUNCE_DELAY K_MSEC(50)  // or 15 ?
@@ -24,6 +14,8 @@ static void button_isr_callback(const struct device *dev,
 {
     struct button_context *btn = CONTAINER_OF(cb, struct button_context, gpio_cb);
 
+	printk("isr\n");
+	
     // Start or restart the debounce timer associated with the button
     k_timer_start(&btn->debounce_timer, DEBOUNCE_DELAY, K_NO_WAIT);
 }
@@ -45,9 +37,11 @@ static void button_handler(struct k_timer *timer_id)
     }
 }
 
+// TODO remove options
 int button_init(struct button_context * button_config, 
 				const struct gpio_dt_spec * device,
-				button_event_handler_t handler)
+				button_event_handler_t handler,
+				unsigned int options)
 {
 	button_config->pin = device->pin;
 	button_config->flags = device->dt_flags;
@@ -61,7 +55,7 @@ int button_init(struct button_context * button_config,
 	k_timer_init(&button_config->debounce_timer, button_handler, NULL);
 
 	// Configure button pin with interrupts
-	gpio_pin_configure(button_config->dev, button_config->pin, button_config->flags | GPIO_INPUT | GPIO_INT_EDGE_BOTH);
+	gpio_pin_configure(button_config->dev, button_config->pin, button_config->flags | GPIO_INPUT | GPIO_INT_EDGE_BOTH | options);
 
 	// Initialize and add the GPIO callback
 	gpio_init_callback(&button_config->gpio_cb, button_isr_callback, BIT(button_config->pin));

@@ -7,7 +7,11 @@ We transmit the state of this iot device using the BTHome protocol (<https://bth
 
 We use VS Code as an IDE.
 
-Ref: <https://docs.zephyrproject.org/latest/boards/arm/nucleo_wb55rg/doc/nucleo_wb55rg.html>
+## References
+
+- Repo organisation reference: <https://github.com/zephyrproject-rtos/example-application>
+- STM32 support in Zephyr: <https://docs.zephyrproject.org/latest/boards/arm/nucleo_wb55rg/doc/nucleo_wb55rg.html>
+
 
 ## Toolchain configuration
 
@@ -69,5 +73,5 @@ It is also possible to do it manually:
 
 ## Credits
 
-https://github.com/beriberikix/zephyr-vscode-example
-https://zmk.dev/docs/development/ide-integration
+* https://github.com/beriberikix/zephyr-vscode-example
+* https://zmk.dev/docs/development/ide-integration
