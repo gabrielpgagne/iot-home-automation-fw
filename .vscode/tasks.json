@@ -47,16 +47,10 @@
 		{
 			"label": "West Flash",
 			"type": "shell",
-			"linux": {
-				"command": "${userHome}/zephyrproject/.venv/bin/west"
-			},
-			"windows": {
-				"command": "${userHome}/zephyrproject/.venv/Scripts/west.exe"
-			},
-			"osx": {
-				"command": "${userHome}/zephyrproject/.venv/bin/west"
-			},
+			"command": "${command:python.interpreterPath}",
 			"args": [
+				"-m",
+				"west",
 				"flash"
 			],
 			"problemMatcher": [

@@ -10,8 +10,6 @@
 		"files.associations": {
 		},
 
-		"python.defaultInterpreterPath": ".venv/bin/python",
-
 		// Auto activate environement
 		"python.terminal.activateEnvironment": true,
 }
