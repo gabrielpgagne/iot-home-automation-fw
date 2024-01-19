@@ -36,24 +36,24 @@
 const struct gpio_dt_spec buzzer = GPIO_DT_SPEC_GET(BUZZER, gpios);
 const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(LED0, gpios);
 const struct gpio_dt_spec door_sw = GPIO_DT_SPEC_GET(DOOR, gpios);
-const struct gpio_dt_spec ctrl_btn = GPIO_DT_SPEC_GET(CTRL, gpios);
+const struct gpio_dt_spec ctrl_sw = GPIO_DT_SPEC_GET(CTRL, gpios);
 //const struct device *light = DEVICE_DT_GET(OPT3001_DEV);
 const struct device *sht = DEVICE_DT_GET(SHTC_DEV);
 
-static struct gpio_callback door_cb;
-static struct gpio_callback ctrl_cb;
 
 /*
  ***************************************************************************
  * Bluetooth BtHome setup.
+ * ref: https://bthome.io/format/
  ****************************************************************************
  */
-#define SERVICE_DATA_LEN 9
+#define SERVICE_DATA_LEN 11 /* 11 bytes of service data */
 #define SERVICE_UUID 0xfcd2 /* BTHome service UUID */
 #define IDX_TEMPL 4         /* Index of lo byte of temp in service data*/
 #define IDX_TEMPH 5         /* Index of hi byte of temp in service data*/
 #define IDX_HUMDL 7         /* Index of lo byte of humidity in service data*/
 #define IDX_HUMDH 8         /* Index of hi byte of humidity in service data*/
+#define IDX_DOOR  10         /* Index of door state */
 
 static uint8_t service_data[SERVICE_DATA_LEN] = {
     BT_UUID_16_ENCODE(SERVICE_UUID),
@@ -62,8 +62,10 @@ static uint8_t service_data[SERVICE_DATA_LEN] = {
     0xc4, /* Low byte */
     0x00, /* High byte */
     0x03, /* Humidity */
-    0xbf, /* 50.55%  low byte*/
-    0x13, /* 50.55%  high byte*/
+    0xbf, /* low byte */
+    0x13, /* high byte */
+    0x1A, /* Door alarm */
+    0x00, /* 0 = closed, 1 = open */
 };
 
 static const struct bt_data ad[] = {
@@ -87,63 +89,16 @@ static const struct bt_data ad[] = {
 
 /*
  ***************************************************************************
- * Door alarm setup.
+ * Debounced button setup.
  ****************************************************************************
  */
 
-// TODO this code is disgusting, software debounce the buttons
-// https://github.com/ubieda/zephyr_button_debouncing/tree/master
-int ctrl_btn_state = 0;
-int ctrl_btn_dt = 0;
-// Beware this function assumes debounced button.
-void ctrl_button_pressed(const struct device *dev, struct gpio_callback *cb,
-                         uint32_t pins) {
-  printk("Control button pressed at %" PRIu32 "\n", k_cycle_get_32());
+struct button_context door_sw_context;	// keep it alive !
+struct button_context ctrl_sw_context;	// keep it alive !
 
-  switch (ctrl_btn_state) {
-  // Idle
-  case 0:
-    if (gpio_pin_get_dt(&ctrl_btn) == 1) {
-      printk("Control button pressed at %" PRIu32 "\n", k_cycle_get_32());
-      ctrl_btn_state = 1;
-    }
-    break;
-  // Button released
-  case 1:
-    if (gpio_pin_get_dt(&ctrl_btn) == 0) {
-      if (k_cyc_to_ms_ceil32(k_cycle_get_32()) - ctrl_btn_dt < 3000) {
-        printk("Ctrl Btn released, going to quiet mode.\n");
-        ctrl_btn_state = 2;
-        // TODO Force buzzer off for 30s
-      } else {
-        printk("Ctrl Btn released, going to shutdown mode.\n");
-        ctrl_btn_state = 3;
-        // TODO force shutdown
-      }
-    }
-    break;
-  case 2:
-  case 3:
-    ctrl_btn_state = 0;
-    break;
-  }
-  ctrl_btn_dt = k_cyc_to_ms_ceil32(k_cycle_get_32());
-}
-
-int door_switch_dt = 0;
-void door_state_change(const struct device *dev, struct gpio_callback *cb,
-                       uint32_t pins) {
-  printk("Door state change at %" PRIu32 "\n", k_cycle_get_32());
-  int door_state = gpio_pin_get_dt(&door_sw);
-  if (door_state == 0) {
-    door_switch_dt = k_cyc_to_ms_ceil32(k_cycle_get_32());
-    gpio_pin_set_dt(&buzzer, 0);
-  } else {
-    int dt = k_cyc_to_ms_ceil32(k_cycle_get_32()) - door_switch_dt;
-    if (dt > 1000) {
-      gpio_pin_set_dt(&buzzer, 1);
-    }
-  }
+static void button_event_handler(enum button_evt evt, int)
+{
+	printk("Button event: %d\n", (int)evt);
 }
 
 
@@ -175,38 +130,41 @@ int main(void) {
   int err;
 
   printk("Hello !\n");
-
-  // // ----- Init Door Switch + IRQ -----
-  // err = gpio_pin_configure_dt(&door_sw, GPIO_INPUT);
-  // err = gpio_pin_interrupt_configure_dt(&door_sw, GPIO_INT_EDGE_BOTH);
-  // if (err != 0) {
-  //   printk("Error %d: failed to configure interrupt on %s pin %d\n", err,
-  //          door_sw.port->name, door_sw.pin);
-  //   return err;
-  // }
-  // gpio_init_callback(&door_cb, door_state_change, BIT(door_sw.pin));
-  // gpio_add_callback(door_sw.port, &door_cb);
-
-  // ----- Init CTRL Button + IRQ -----
-  err = gpio_pin_configure_dt(&ctrl_btn, GPIO_INPUT | GPIO_PULL_DOWN);
-  err = gpio_pin_interrupt_configure_dt(&ctrl_btn, GPIO_INT_EDGE_BOTH);
-  if (err != 0) {
-    printk("Error %d: failed to configure interrupt on %s pin %d\n", err,
-           ctrl_btn.port->name, ctrl_btn.pin);
-    return err;
-  }
-  gpio_init_callback(&ctrl_cb, ctrl_button_pressed, BIT(ctrl_btn.pin));
-  gpio_add_callback(ctrl_btn.port, &ctrl_cb);
  
   // ----- Init Buzzer -----
   gpio_pin_configure_dt(&buzzer, GPIO_OUTPUT);
-  gpio_pin_set_dt(&buzzer, 1);
-  k_msleep(100);
-  gpio_pin_set_dt(&buzzer, 0);
-  k_msleep(100);
 
   // ----- Init LED -----
   gpio_pin_configure_dt(&led, GPIO_OUTPUT);
+
+  // ----- Confirm buzzer and led
+  gpio_pin_set_dt(&led, 1);
+  gpio_pin_set_dt(&buzzer, 1);
+  k_msleep(100);
+  gpio_pin_set_dt(&buzzer, 0);
+  gpio_pin_set_dt(&led, 0);
+  k_msleep(100);
+
+  // ----- Init button -----
+  err = button_init(&door_sw_context,
+                    &door_sw,
+                    button_event_handler,
+                    0);
+
+	if (err) {
+	  printk("Button 1 Init failed: %d\n", err);
+		return -1;
+	}
+
+	err = button_init(&ctrl_sw_context,
+                    &ctrl_sw,
+                    button_event_handler,
+                    GPIO_PULL_DOWN);
+
+	if (err) {
+		printk("Button 2 Init failed: %d\n", err);
+		return -1;
+	}
 
   // ----- SHT init -----
   if (!device_is_ready(sht)) {
@@ -279,6 +237,16 @@ int main(void) {
       service_data[IDX_HUMDL] = (int)(fhumd * 100) & 0xff;
     }
 
+    /* Get ctrl button */
+    bool cntrl_button_pressed = ctrl_sw_context.pressed;
+    gpio_pin_set_dt(&led, cntrl_button_pressed ? 1 : 0);
+
+    /* Get door state */
+    bool door_open = door_sw_context.pressed;
+    service_data[IDX_DOOR] = door_open ? 1 : 0;
+    printk("Door: %s\n", door_open ? "open" : "closed");
+
+    /* Update advertising data */
     err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
     if (err) {
       printk("Failed to update advertising data (err %d)\n", err);
