@@ -13,8 +13,6 @@ static void button_isr_callback(const struct device *dev,
 								gpio_port_pins_t pins)
 {
     struct button_context *btn = CONTAINER_OF(cb, struct button_context, gpio_cb);
-
-	printk("isr\n");
 	
     // Start or restart the debounce timer associated with the button
     k_timer_start(&btn->debounce_timer, DEBOUNCE_DELAY, K_NO_WAIT);

@@ -17,7 +17,7 @@
 				"auto",
 				"-b",
 				"nucleo_wb55rg",
-				"application"
+				"app"
 			],
 			"problemMatcher": [
 				"$gcc"
@@ -78,9 +78,13 @@
 		}
 		{
 			"id": "target",
-			"type": "promptString",
+			"type": "pickString",
 			"description": "Project to build",
-			"default": "application",
+			"default": "app",
+			"options": [
+				"app",
+				"tests/button_test",
+			]
 		}
 	]
 }

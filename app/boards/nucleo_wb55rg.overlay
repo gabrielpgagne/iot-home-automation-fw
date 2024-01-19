@@ -50,7 +50,8 @@
 	};
 
 	aliases {
-		led1 = &green_led_2;
+		buzzer = &green_led_2;
+		statusled = &blue_led_1;
 	};
 };
 
