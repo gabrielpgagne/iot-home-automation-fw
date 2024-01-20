@@ -75,7 +75,7 @@
 				"always",
 				"never"
 			]
-		}
+		},
 		{
 			"id": "target",
 			"type": "pickString",
