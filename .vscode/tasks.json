@@ -24,6 +24,28 @@
 			]
 		},
 		{
+			"label": "West Build Current",
+			"type": "shell",
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"command": "${command:python.interpreterPath}",
+			"args": [
+				"-m",
+				"west",
+				"build",
+				"-p",
+				"auto",
+				"-b",
+				"nucleo_wb55rg",
+				"${fileDirname}/.."
+			],
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
 			"label": "West Configurable Build",
 			"type": "shell",
 			"group": {
@@ -84,6 +106,7 @@
 			"options": [
 				"app",
 				"tests/button_test",
+				"tests/blinker_test",
 			]
 		}
 	]

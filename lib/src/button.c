@@ -21,33 +21,40 @@ static void button_isr_callback(const struct device *dev,
 // Timer handler function for debouncing
 static void button_handler(struct k_timer *timer_id)
 {
-    struct button_context *btn = CONTAINER_OF(timer_id, struct button_context, debounce_timer);
+    struct button_context *context = CONTAINER_OF(timer_id, struct button_context, debounce_timer);
 
     // Read the button state to confirm if it's still pressed/released
-    int state = gpio_pin_get(btn->dev, btn->pin);
+    int state = gpio_pin_get(context->dev, context->pin);
 
     // Check if the state has changed since the last interrupt
-    if (state != btn->pressed) {
-        btn->pressed = state; // Update the state
+    if (state != context->pressed) {
+        context->pressed = state; // Update the state
 
         // Perform your button action here
-        printk("Button on pin %d is now %s\n", btn->pin, state ? "pressed" : "released");
-    }
+        printk("Button on pin %d is now %s\n", context->pin, state ? "pressed" : "released");
+    
+		if (context->user_callback != NULL)
+		{
+			context->user_callback(context->pressed, context);
+		}
+	}
 }
 
 // TODO remove options
-int button_init(struct button_context * button_config, 
+bool button_init(struct button_context * button_config, 
 				const struct gpio_dt_spec * device,
 				button_event_handler_t handler,
-				unsigned int options)
+				unsigned int options,
+				button_event_handler_t user_callback)
 {
 	button_config->pin = device->pin;
 	button_config->flags = device->dt_flags;
     button_config->dev = device->port;
-	// if (!button_config->dev) {
-	// 	printk("Error: Button device %s not found.\n", device);
-	// 	return -1;
-	// }
+	
+	if (!button_config->dev) {
+	 	printk("Error: Button device %s not found.\n", device);
+		return false;
+	}
 
 	// Initialize the debounce timer for the button
 	k_timer_init(&button_config->debounce_timer, button_handler, NULL);
@@ -62,41 +69,6 @@ int button_init(struct button_context * button_config,
 	// Enable interrupts for the button pin
 	gpio_pin_interrupt_configure(button_config->dev, button_config->pin, GPIO_INT_EDGE_BOTH);
 
-	return 0;
+	button_config->user_callback = user_callback;
+	return true;
 }
-
-/*********************************************/
-// Example:
-// #include <zephyr/kernel.h>
-// #include "button.h"
-//
-// #define SW0_NODE	DT_ALIAS(sw0)
-// static const struct gpio_dt_spec button0 = GPIO_DT_SPEC_GET(SW0_NODE, gpios); 
-//
-// static void button_event_handler(enum button_evt evt, int)
-// {
-// 	printk("Button event: %d\n", (int)evt);
-// }
-//
-// int main(void)
-// {
-// 	int err = -1;
-//
-// 	printk("Button Debouncing Sample!\n");
-//
-// 	struct button_context sw0_context;	// keep it alive !
-// 	err = button_init(
-// 		&sw0_context,
-// 		&button0,
-// 		button_event_handler);
-//
-// 	if (err) {
-// 		printk("Button Init failed: %d\n", err);
-// 		return -1;
-// 	}
-//
-// 	printk("Init succeeded. Waiting for event...\n");
-// 	return 0;
-// }
-//
-/*********************************************/

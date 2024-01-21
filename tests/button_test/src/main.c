@@ -28,7 +28,7 @@ static void button_event_handler(enum button_evt evt, int)
 
 int main(void)
 {
-	int err = -1;
+	bool err;
 
 	printk("Button Debouncing Sample!\n");
 
