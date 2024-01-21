@@ -21,21 +21,22 @@ const struct gpio_dt_spec ctrl_sw = GPIO_DT_SPEC_GET(CTRL, gpios);
 struct button_context door_sw_context;	// keep it alive !
 struct button_context ctrl_sw_context;	// keep it alive !
 
-static void button_event_handler(enum button_evt evt, int)
+static void button_event_handler(enum button_evt evt, long info)
 {
-	printk("Button event: %d\n", (int)evt);
+	printk("Button %d event: %s\n", info, evt == BUTTON_EVT_PRESSED ? "Press" : "Release");
 }
 
 int main(void)
 {
-	int err = -1;
+	bool err;
 
 	printk("Button Debouncing Sample!\n");
 
 	err = button_init(
 		&door_sw_context,
-		&door_sw,
+		&door_sw,		
 		button_event_handler,
+		1,
 		0);
 
 	if (err) {
@@ -47,6 +48,7 @@ int main(void)
 		&ctrl_sw_context,
 		&ctrl_sw,
 		button_event_handler,
+		2,
 		GPIO_PULL_DOWN);
 
 	if (err) {

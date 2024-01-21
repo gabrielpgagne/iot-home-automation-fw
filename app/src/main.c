@@ -24,8 +24,6 @@
  * Device tree definitions
  */
 
-// https://github.com/aaron-mohtar-co/Lemon-IoT-LTE-nRF9160/tree/main/Examples/i2c_sensor
-// #define OPT3001_DEV DT_NODELABEL(opt3001)
 #define SHTC_DEV DT_NODELABEL(shtcx)
 #define DOOR DT_ALIAS(sw0)
 #define CTRL DT_ALIAS(sw1)
@@ -149,6 +147,7 @@ int main(void) {
   err = button_init(&door_sw_context,
                     &door_sw,
                     button_event_handler,
+                    0,
                     0);
 
 	if (err) {
@@ -159,6 +158,7 @@ int main(void) {
 	err = button_init(&ctrl_sw_context,
                     &ctrl_sw,
                     button_event_handler,
+                    1,
                     GPIO_PULL_DOWN);
 
 	if (err) {

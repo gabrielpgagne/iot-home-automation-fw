@@ -18,6 +18,8 @@ enum button_evt {
     BUTTON_EVT_RELEASED
 };
 
+typedef void (*button_event_handler_t)(enum button_evt, long info);
+
 // Context definition for the button. Must not be deleted.
 struct button_context {
     const struct device *dev;
@@ -26,13 +28,15 @@ struct button_context {
     struct k_timer debounce_timer;
     struct gpio_callback gpio_cb;
     bool pressed;
+    button_event_handler_t user_callback;
+    long info;
 };
 
-typedef void (*button_event_handler_t)(enum button_evt evt, int device_alias);
-
-int button_init(struct button_context * button_config, 
+// Returns true if OK.
+bool button_init(struct button_context * button_config, 
 				const struct gpio_dt_spec * device,
-				button_event_handler_t handler,
+				button_event_handler_t user_callback,
+                long info,
                 unsigned int options);
 
 #endif /* _BUTTON_H_ */
