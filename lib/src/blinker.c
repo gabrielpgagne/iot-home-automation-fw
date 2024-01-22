@@ -19,7 +19,7 @@ static void blinker_handler(struct k_timer *timer_id)
 		context->user_callback(context->current_state, context->info);
 	}
 
-	if (context->repeat_sequence || context->current_step<context->max_step)
+	if (context->repeat_sequence || context->current_step<(context->max_step-1))
 	{
 		k_timer_start(&context->blinker_timer, K_MSEC(context->steps[context->current_step]), K_NO_WAIT);
 	}

@@ -18,10 +18,12 @@
 #include <zephyr/bluetooth/uuid.h>
 
 #include <button.h>
+#include <blinker.h>
 
 /*
  ***************************************************************************
- * Device tree definitions
+ * Device tree definitions.
+ ***************************************************************************
  */
 
 #define SHTC_DEV DT_NODELABEL(shtcx)
@@ -81,24 +83,50 @@ static const struct bt_data ad[] = {
 */
 
 #define ADV_PARAMS BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY, \
-				  BT_GAP_ADV_SLOW_INT_MIN, \
-				  BT_GAP_ADV_SLOW_INT_MAX, NULL)
+          BT_GAP_ADV_SLOW_INT_MIN, \
+          BT_GAP_ADV_SLOW_INT_MAX, NULL)
 
 
 /*
  ***************************************************************************
- * Debounced button setup.
+ * Contexts for buttons and blinkers.
  ****************************************************************************
  */
 
 struct button_context door_sw_context;	// keep it alive !
 struct button_context ctrl_sw_context;	// keep it alive !
+struct blinker_context userled_blinker_context;	// keep it alive !
 
-static void button_event_handler(enum button_evt evt, int)
+static const int sequence_len = 2;
+static const long sequence[2] = {1000, 1000};
+
+/*
+ ***************************************************************************
+ buttons and blinkers callbacks.
+ ****************************************************************************
+ */
+static void userled_blink_event_handler(enum blinker_evt evt, int)
 {
-	printk("Button event: %d\n", (int)evt);
+    gpio_pin_set_dt(&led, evt==blinker_EVT_ON ? 1 : 0);
 }
 
+static void ctrl_button_event_handler(enum button_evt evt, int)
+{
+    printk("Button event: %d\n", (int)evt);
+}
+
+static void door_button_event_handler(enum button_evt evt, int)
+{
+    printk("Button event: %d\n", (int)evt);
+    if (evt == BUTTON_EVT_PRESSED)
+    {
+        blinker_start(&userled_blinker_context, true);
+    }
+    else
+    {
+        blinker_stop(&userled_blinker_context, true);
+    }
+}
 
 /*
  ***************************************************************************
@@ -143,28 +171,37 @@ int main(void) {
   gpio_pin_set_dt(&led, 0);
   k_msleep(100);
 
+  // ----- Init userlink blink -----
+  err = blinker_init(
+            &userled_blinker_context,
+            sequence,
+            sequence_len,
+            userled_blink_event_handler,
+            0
+        );
+
   // ----- Init button -----
   err = button_init(&door_sw_context,
                     &door_sw,
-                    button_event_handler,
+                    door_button_event_handler,
                     0,
                     0);
 
-	if (err) {
-	  printk("Button 1 Init failed: %d\n", err);
-		return -1;
-	}
+  if (err) {
+    printk("Button 1 Init failed: %d\n", err);
+    return -1;
+  }
 
-	err = button_init(&ctrl_sw_context,
+  err = button_init(&ctrl_sw_context,
                     &ctrl_sw,
-                    button_event_handler,
+                    ctrl_button_event_handler,
                     1,
                     GPIO_PULL_DOWN);
 
-	if (err) {
-		printk("Button 2 Init failed: %d\n", err);
-		return -1;
-	}
+  if (err) {
+    printk("Button 2 Init failed: %d\n", err);
+    return -1;
+  }
 
   // ----- SHT init -----
   if (!device_is_ready(sht)) {
@@ -211,20 +248,20 @@ int main(void) {
   for (;;) {
 
     /* Get temp & humidity */
-		struct sensor_value temp, hum;
+    struct sensor_value temp, hum;
 
-		int err = sensor_sample_fetch(sht);
-		if (err == 0) {
-			err = sensor_channel_get(sht, SENSOR_CHAN_AMBIENT_TEMP,
-						&temp);
-		}
-		if (err == 0) {
-			err = sensor_channel_get(sht, SENSOR_CHAN_HUMIDITY,
-						&hum);
-		}
-		if (err != 0) {
-		  printf("SHT: failed: %d\n", err);
-		}
+    int err = sensor_sample_fetch(sht);
+    if (err == 0) {
+      err = sensor_channel_get(sht, SENSOR_CHAN_AMBIENT_TEMP,
+            &temp);
+    }
+    if (err == 0) {
+      err = sensor_channel_get(sht, SENSOR_CHAN_HUMIDITY,
+            &hum);
+    }
+    if (err != 0) {
+      printf("SHT: failed: %d\n", err);
+    }
     else {
       double ftemp = sensor_value_to_double(&temp);
       double fhumd = sensor_value_to_double(&hum);
@@ -238,8 +275,7 @@ int main(void) {
     }
 
     /* Get ctrl button */
-    bool cntrl_button_pressed = ctrl_sw_context.pressed;
-    gpio_pin_set_dt(&led, cntrl_button_pressed ? 1 : 0);
+    //    bool cntrl_button_pressed = ctrl_sw_context.pressed;
 
     /* Get door state */
     bool door_open = door_sw_context.pressed;
