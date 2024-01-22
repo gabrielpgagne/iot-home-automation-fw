@@ -25,6 +25,7 @@ static void button_handler(struct k_timer *timer_id)
 
     // Read the button state to confirm if it's still pressed/released
     int state = gpio_pin_get(context->dev, context->pin);
+    int state = gpio_pin_get(context->dev, context->pin);
 
     // Check if the state has changed since the last interrupt
     if (state != context->pressed) {
@@ -39,6 +40,7 @@ static void button_handler(struct k_timer *timer_id)
 
 // TODO remove options
 bool button_init(struct button_context * button_config, 
+bool button_init(struct button_context * button_config, 
 				const struct gpio_dt_spec * device,
 				button_event_handler_t user_callback,
 				long info,
@@ -47,6 +49,11 @@ bool button_init(struct button_context * button_config,
 	button_config->pin = device->pin;
 	button_config->flags = device->dt_flags;
     button_config->dev = device->port;
+	
+	if (!button_config->dev) {
+	 	printk("Error: Button device %s not found.\n", device);
+		return false;
+	}
 	
 	if (!button_config->dev) {
 	 	printk("Error: Button device %s not found.\n", device);
