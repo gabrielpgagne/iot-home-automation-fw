@@ -23,7 +23,6 @@ enum blinker_evt {
 typedef void (*blinker_event_handler_t)(enum blinker_evt evt, long info);
 
 // Context definition for the blinker. Must not be deleted.
-// If blinker idle current_step==-1.
 // If sequence not defined, max_step==-1.
 struct blinker_context {
     struct k_timer blinker_timer;

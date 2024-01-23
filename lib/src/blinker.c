@@ -1,14 +1,19 @@
 #include <assert.h>
 
+
+
 #include "blinker.h"
 
 // Abort immediatly the current blink
 static void blinker_abort(struct blinker_context *context)
 {
-    if (context->current_step != -1)
+    assert(context != NULL);
+
+    if (k_timer_status_get(&context->blinker_timer) < 0)
     {
+        // A timer is running.
         k_timer_stop(&context->blinker_timer);
-        context->current_step = -1;
+        k_timer_status_sync(&context->blinker_timer);
     }
 
     if (context->user_callback)
@@ -42,7 +47,11 @@ static void blinker_handler(struct k_timer *timer_id)
     }
     else
     {
-        blinker_abort(context);
+        // We stop: do not renew the timer.
+        if (context->user_callback)
+        {
+            context->user_callback(BLINKER_EVT_STOP, context->info);
+        }
     }
 }
 
