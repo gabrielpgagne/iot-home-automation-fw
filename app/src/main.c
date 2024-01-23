@@ -97,9 +97,6 @@ struct button_context door_sw_context;	// keep it alive !
 struct button_context ctrl_sw_context;	// keep it alive !
 struct blinker_context userled_blinker_context;	// keep it alive !
 
-static const int sequence_len = 2;
-static const long sequence[2] = {1000, 1000};
-
 /*
  ***************************************************************************
  buttons and blinkers callbacks.
@@ -107,7 +104,7 @@ static const long sequence[2] = {1000, 1000};
  */
 static void userled_blink_event_handler(enum blinker_evt evt, int)
 {
-    gpio_pin_set_dt(&led, evt==blinker_EVT_ON ? 1 : 0);
+    gpio_pin_set_dt(&led, evt==BLINKER_EVT_ON ? 1 : 0);
 }
 
 static void ctrl_button_event_handler(enum button_evt evt, int)
@@ -124,7 +121,7 @@ static void door_button_event_handler(enum button_evt evt, int)
     }
     else
     {
-        blinker_stop(&userled_blinker_context, true);
+        blinker_stop(&userled_blinker_context, false);
     }
 }
 
@@ -174,11 +171,9 @@ int main(void) {
   // ----- Init userlink blink -----
   err = blinker_init(
             &userled_blinker_context,
-            sequence,
-            sequence_len,
             userled_blink_event_handler,
-            0
-        );
+            0);
+  blinker_sequence1(&userled_blinker_context, 1000, 1000);
 
   // ----- Init button -----
   err = button_init(&door_sw_context,

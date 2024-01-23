@@ -8,7 +8,15 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"command": "${command:python.interpreterPath}",
+			"linux": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
+			"windows": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
+			"osx": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
 			"args": [
 				"-m",
 				"west",
@@ -30,7 +38,15 @@
 				"kind": "build",
 				"isDefault": false
 			},
-			"command": "${command:python.interpreterPath}",
+			"linux": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
+			"windows": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
+			"osx": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
 			"args": [
 				"-m",
 				"west",
@@ -50,8 +66,17 @@
 			"type": "shell",
 			"group": {
 				"kind": "build",
+				"isDefault": false
 			},
-			"command": "${command:python.interpreterPath}",
+			"linux": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
+			"windows": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
+			"osx": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
 			"args": [
 				"-m",
 				"west",
@@ -69,12 +94,24 @@
 		{
 			"label": "West Flash",
 			"type": "shell",
-			"command": "${command:python.interpreterPath}",
+			"linux": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
+			"windows": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
+			"osx": {
+				"command": "${userHome}/zephyrproject/.venv/bin/python"
+			},
 			"args": [
 				"-m",
 				"west",
 				"flash"
 			],
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
 			"problemMatcher": [
 				"$gcc"
 			]

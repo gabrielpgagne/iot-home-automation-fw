@@ -14,31 +14,50 @@
 
 
 enum blinker_evt {
-    blinker_EVT_OFF = 0,
-    blinker_EVT_ON = 1,
+    BLINKER_EVT_OFF = 0,
+    BLINKER_EVT_ON = 1,
+    BLINKER_EVT_STOP,
+    BLINKER_EVT_START,
 };
 
 typedef void (*blinker_event_handler_t)(enum blinker_evt evt, long info);
 
-// Context definition for the button. Must not be deleted.
+// Context definition for the blinker. Must not be deleted.
+// If blinker idle current_step==-1.
+// If sequence not defined, max_step==-1.
 struct blinker_context {
     struct k_timer blinker_timer;
     bool repeat_sequence;
     int current_step;
     enum blinker_evt current_state;
     int max_step;
-    const unsigned long * steps;
+    unsigned long steps[6];
     blinker_event_handler_t user_callback;
     long info;
 };
 
-bool blinker_init(struct blinker_context * blinker_config, 
-                 const unsigned long * steps,
-				 int step_count,
-                 blinker_event_handler_t user_callback,
-                 long info);
+bool blinker_init(struct blinker_context * blinker_config,
+                  blinker_event_handler_t user_callback,
+                  long info);
 
-void blinker_start(struct blinker_context * blinker_config, bool repeat_sequence);
-void blinker_stop(struct blinker_context * blinker_config, bool wait_end_sequence);
+
+bool blinker_start(struct blinker_context * blinker_config,
+                   bool repeat_sequence);
+
+void blinker_stop(struct blinker_context * blinker_config,
+                  bool wait_end_sequence);
+
+void blinker_sequence1(struct blinker_context * blinker_config,
+                       long on1, long off1);
+
+void blinker_sequence2(struct blinker_context * blinker_config,
+                       long on1, long off1,
+                       long on2, long off2);
+
+void blinker_sequence3(struct blinker_context * blinker_config,
+                       long on1, long off1,
+                       long on2, long off2,
+                       long on3, long off3);
+
 
 #endif /* _blinker_H_ */
