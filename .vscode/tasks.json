@@ -9,13 +9,13 @@
 				"isDefault": true
 			},
 			"linux": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"windows": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"osx": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"args": [
 				"-m",
@@ -39,13 +39,13 @@
 				"isDefault": false
 			},
 			"linux": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"windows": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"osx": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"args": [
 				"-m",
@@ -69,13 +69,13 @@
 				"isDefault": false
 			},
 			"linux": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"windows": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"osx": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"args": [
 				"-m",
@@ -95,13 +95,13 @@
 			"label": "West Flash",
 			"type": "shell",
 			"linux": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"windows": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"osx": {
-				"command": "${userHome}/zephyrproject/.venv/bin/python"
+				"command": "${workspace}/.venv/bin/python"
 			},
 			"args": [
 				"-m",
