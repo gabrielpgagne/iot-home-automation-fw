@@ -41,7 +41,9 @@ static void blinker_handler(struct k_timer *timer_id)
         context->user_callback(context->current_state, context->info);
     }
 
-    if (context->repeat_sequence || context->current_step < (context->max_step - 1))
+
+    if (context->steps[context->current_step] > 0 &&
+        (context->current_step < (context->max_step - 1) || context->repeat_sequence))
     {
         k_timer_start(&context->blinker_timer, K_MSEC(context->steps[context->current_step]), K_NO_WAIT);
     }
@@ -109,7 +111,19 @@ void blinker_stop(struct blinker_context *blinker_config, bool wait_end_sequence
     }
 }
 
-void blinker_sequence1(struct blinker_context *blinker_config,
+void blinker_sequence0(struct blinker_context *blinker_config,
+                       long on1)
+{
+    assert(on1 > 0);
+
+    blinker_abort(blinker_config);
+
+    blinker_config->steps[0] = on1;
+    blinker_config->steps[1] = 0;
+    blinker_config->max_step = 2;
+}
+
+void blinker_sequence2(struct blinker_context *blinker_config,
                        long on1, long off1)
 {
     assert(on1 > 0 && off1 > 0);
@@ -121,7 +135,7 @@ void blinker_sequence1(struct blinker_context *blinker_config,
     blinker_config->max_step = 2;
 }
 
-void blinker_sequence2(struct blinker_context *blinker_config,
+void blinker_sequence4(struct blinker_context *blinker_config,
                        long on1, long off1,
                        long on2, long off2)
 {
@@ -137,7 +151,7 @@ void blinker_sequence2(struct blinker_context *blinker_config,
     blinker_config->max_step = 4;
 }
 
-void blinker_sequence3(struct blinker_context *blinker_config,
+void blinker_sequence6(struct blinker_context *blinker_config,
                        long on1, long off1,
                        long on2, long off2,
                        long on3, long off3)

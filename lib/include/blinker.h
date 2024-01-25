@@ -46,14 +46,17 @@ bool blinker_start(struct blinker_context * blinker_config,
 void blinker_stop(struct blinker_context * blinker_config,
                   bool wait_end_sequence);
 
-void blinker_sequence1(struct blinker_context * blinker_config,
-                       long on1, long off1);
+void blinker_sequence0(struct blinker_context * blinker_config,
+                       long on1);
 
 void blinker_sequence2(struct blinker_context * blinker_config,
+                       long on1, long off1);
+
+void blinker_sequence4(struct blinker_context * blinker_config,
                        long on1, long off1,
                        long on2, long off2);
 
-void blinker_sequence3(struct blinker_context * blinker_config,
+void blinker_sequence6(struct blinker_context * blinker_config,
                        long on1, long off1,
                        long on2, long off2,
                        long on3, long off3);
