@@ -1,18 +1,3 @@
-&pinctrl {
-    usart1_rx_pa10: usart1_rx_pa10 {
-        pinmux = < STM32_PINMUX('A', 10, AF7) >;
-    };
-
-    usart1_tx_pa9: usart1_tx_pa9 {
-        pinmux = < STM32_PINMUX('A', 9, AF7) >;
-    };
-};
-
-// usart 1 on PA9 and PA10
-&usart1 {
-    pinctrl-0 = <&usart1_rx_pa10 &usart1_tx_pa9>;
-};
-
 // i2c1 for sht
 &i2c1 {
     pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
@@ -31,44 +16,25 @@
 	};
 };
 
-&gpioa {
-	status = "okay";
-};
-&gpiob {
-	status = "okay";
-};
-&gpioc {
-	status = "okay";
-};
-&gpiod {
-	status = "okay";
-};
-
 / {
 	zephyr,user {
 		signal-gpios =  < &gpiob 6 GPIO_ACTIVE_HIGH >; // Test scl
 	};
 
+
 	aliases {
 		buzzer = &green_led_2;
 		statusled = &blue_led_1;
+		
+		led0 = &green_led_2;
+		led1 = &blue_led_1;
+		sw0 = &user_button_1;
+		sw1 = &user_button_2;
+		sw2 = &user_button_3;
+		watchdog0 = &iwdg;
+		die-temp0 = &die_temp;
+		volt-sensor0 = &vref;
+		volt-sensor1 = &vbat;
 	};
+	
 };
-
-// door 
-&user_button_1 {
-	gpios = < &gpioc 2 GPIO_ACTIVE_HIGH >; // Door uSwitch
-};
-
-&user_button_2 {
-	gpios = < &gpiod 1 GPIO_ACTIVE_HIGH >; // CTRL Btn
-};
-
-&blue_led_1 {
-	gpios = < &gpiob 3 GPIO_ACTIVE_HIGH >; // User LED
-};
-
-&green_led_2 {
-	gpios = < &gpioa 0 GPIO_ACTIVE_HIGH >; // Buzzer
-};
-// TODO add VCC ADC...
