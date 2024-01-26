@@ -60,7 +60,7 @@
 };
 
 &user_button_2 {
-	gpios = < &gpiod 1 GPIO_ACTIVE_HIGH >; // CTRL Btn
+	gpios = < &gpiod 1 GPIO_ACTIVE_HIGH  >; // CTRL Btn
 };
 
 &blue_led_1 {

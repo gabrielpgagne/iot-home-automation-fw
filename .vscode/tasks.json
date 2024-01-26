@@ -8,7 +8,15 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"command": "${command:python.interpreterPath}",
+			"linux": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"windows": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"osx": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
 			"args": [
 				"-m",
 				"west",
@@ -17,7 +25,37 @@
 				"auto",
 				"-b",
 				"nucleo_wb55rg",
-				"application"
+				"app"
+			],
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"label": "West Build Current",
+			"type": "shell",
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"linux": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"windows": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"osx": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"args": [
+				"-m",
+				"west",
+				"build",
+				"-p",
+				"auto",
+				"-b",
+				"nucleo_wb55rg",
+				"${fileDirname}/.."
 			],
 			"problemMatcher": [
 				"$gcc"
@@ -28,8 +66,17 @@
 			"type": "shell",
 			"group": {
 				"kind": "build",
+				"isDefault": false
 			},
-			"command": "${command:python.interpreterPath}",
+			"linux": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"windows": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
+			"osx": {
+				"command": "${workspaceFolder}/.venv/bin/python"
+			},
 			"args": [
 				"-m",
 				"west",
@@ -38,7 +85,7 @@
 				"${input:pristine}",
 				"-b",
 				"${input:board}",
-				"application"
+				"${input:target}"
 			],
 			"problemMatcher": [
 				"$gcc"
@@ -48,17 +95,23 @@
 			"label": "West Flash",
 			"type": "shell",
 			"linux": {
-				"command": "${userHome}/zephyrproject/.venv/bin/west"
+				"command": "${workspaceFolder}/.venv/bin/python"
 			},
 			"windows": {
-				"command": "${userHome}/zephyrproject/.venv/Scripts/west.exe"
+				"command": "${workspaceFolder}/.venv/bin/python"
 			},
 			"osx": {
-				"command": "${userHome}/zephyrproject/.venv/bin/west"
+				"command": "${workspaceFolder}/.venv/bin/python"
 			},
 			"args": [
+				"-m",
+				"west",
 				"flash"
 			],
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
 			"problemMatcher": [
 				"$gcc"
 			]
@@ -80,6 +133,17 @@
 				"auto",
 				"always",
 				"never"
+			]
+		},
+		{
+			"id": "target",
+			"type": "pickString",
+			"description": "Project to build",
+			"default": "app",
+			"options": [
+				"app",
+				"tests/button_test",
+				"tests/blinker_test",
 			]
 		}
 	]

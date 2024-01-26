@@ -1,0 +1,40 @@
+// i2c1 for sht
+&i2c1 {
+    pinctrl-0 = <&i2c1_scl_pb6 &i2c1_sda_pb7>;
+    status = "okay";
+    pinctrl-names = "default";
+    
+	opt3001: opt3001@44 {
+		compatible = "ti,opt3001";
+		reg = <0x44>;
+	};
+    shtcx: shtcx@70 {
+		compatible = "sensirion,shtcx";
+		reg = <0x70>;
+		chip = "shtc3";
+		measure-mode = "normal";
+	};
+};
+
+/ {
+	zephyr,user {
+		signal-gpios =  < &gpiob 6 GPIO_ACTIVE_HIGH >; // Test scl
+	};
+
+
+	aliases {
+		buzzer = &green_led_2;
+		statusled = &blue_led_1;
+		
+		led0 = &green_led_2;
+		led1 = &blue_led_1;
+		sw0 = &user_button_1;
+		sw1 = &user_button_2;
+		sw2 = &user_button_3;
+		watchdog0 = &iwdg;
+		die-temp0 = &die_temp;
+		volt-sensor0 = &vref;
+		volt-sensor1 = &vbat;
+	};
+	
+};

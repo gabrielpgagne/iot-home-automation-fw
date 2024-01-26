@@ -8,6 +8,9 @@
 
 		// File Associations
 		"files.associations": {
+			"locale": "c",
+			"kernel.h": "c",
+			"gpio.h": "c"
 		},
 
 		// Auto activate environement
