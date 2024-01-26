@@ -13,9 +13,10 @@
 #include <zephyr/kernel.h>
 
 
-enum button_evt {
-    BUTTON_EVT_PRESSED,
-    BUTTON_EVT_RELEASED
+enum button_evt
+{
+    BUTTON_EVT_RELEASED = 0,
+    BUTTON_EVT_PRESSED = 1,
 };
 
 typedef void (*button_event_handler_t)(enum button_evt, long info);
@@ -27,7 +28,7 @@ struct button_context {
     gpio_flags_t flags;
     struct k_timer debounce_timer;
     struct gpio_callback gpio_cb;
-    bool pressed;
+    int pressed;    // -1 = unknown.
     button_event_handler_t user_callback;
     long info;
 };
@@ -37,5 +38,8 @@ bool button_init(struct button_context * button_config,
                 button_event_handler_t user_callback,
                 long info,
                 unsigned int options);
+
+// Simulate a button action. Usefull to init the button.
+void button_reset_state(struct button_context * button_config);
 
 #endif /* _BUTTON_H_ */

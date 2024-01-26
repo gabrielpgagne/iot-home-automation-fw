@@ -146,10 +146,10 @@ static void door_button_event_handler(enum button_evt evt, long)
     switch (evt)
     {
         case BUTTON_EVT_PRESSED:
-            FSM_DoorOpen();
-            break;
-        case BUTTON_EVT_RELEASED:
             FSM_DoorClose();
+            break;
+        case BUTTON_EVT_RELEASED:            
+            FSM_DoorOpen();
             break;
     }
 }
@@ -268,6 +268,11 @@ int main(void) {
     // ----- State machine init -----
     FSM_Init();
 
+    // init buttons
+    button_reset_state(&door_sw_context);
+    button_reset_state(&ctrl_sw_context);
+
+    // ------ Main loop -------
     err = bt_ready();
     if (err)
     {
@@ -333,7 +338,7 @@ int main(void) {
         }
 
         /* Get door state */
-        bool door_open = !door_sw_context.pressed;
+        bool door_open = door_sw_context.pressed == 0;
         service_data[IDX_DOOR] = door_open ? 1 : 0;
         printk("Door: %s\n", door_open ? "open" : "closed");
 
