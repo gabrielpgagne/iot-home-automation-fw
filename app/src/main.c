@@ -159,18 +159,17 @@ static void door_button_event_handler(enum button_evt evt, long)
  * Bluetooth functions.
  ****************************************************************************
  */
-static int bt_ready() {
-
+static void bt_ready(int err)
+{
     printk("Bluetooth initialized\n");
 
     /* Start advertising */
-    int err = bt_le_adv_start(ADV_PARAMS, ad, ARRAY_SIZE(ad), NULL, 0);
+    err = bt_le_adv_start(ADV_PARAMS, ad, ARRAY_SIZE(ad), NULL, 0);
     if (err) {
         printk("Advertising failed to start (err %d)\n", err);
     }
 
     printk("Advertising started.\n");
-    return err;
 }
 
 /*
@@ -197,6 +196,8 @@ int main(void) {
     gpio_pin_set_dt(&led, 0);
     k_msleep(100);
 
+    printk("Yo\n");
+
     // ----- Init userlink blink -----
     status_ok = blinker_init(
                 &userled_blinker_context,
@@ -207,7 +208,6 @@ int main(void) {
                 &buzzer_blinker_context,
                 buzzer_event_handler,
                 0);
- //   blinker_sequence2(&userled_blinker_context, 1000, 1000);
 
     // ----- We use a blinker in a monostable fashion as a timer -----
     status_ok = blinker_init(
@@ -216,6 +216,7 @@ int main(void) {
                 0);
 
     // ----- Init button -----
+    printk("bot1\n");
     status_ok = button_init(&door_sw_context,
                         &door_sw,
                         door_button_event_handler,
@@ -226,7 +227,7 @@ int main(void) {
         printk("Button 1 Init failed\n");
         return -1;
     }
-
+    printk("bot2\n");
     status_ok = button_init(&ctrl_sw_context,
                         &ctrl_sw,
                         ctrl_button_event_handler,
@@ -246,8 +247,10 @@ int main(void) {
         printk("Found device %s. Reading sensor data\n", sht->name);
     }
     
+    // ----- SHT init -----
     printk("CONFIG_BT_DEVICE_NAME: %s\n", CONFIG_BT_DEVICE_NAME);
-    int err = bt_enable(NULL);
+
+   	int err = bt_enable(bt_ready);
     if (err)
     {
         printk("Bluetooth init failed (err %d)\n", err);
@@ -263,6 +266,15 @@ int main(void) {
         return 0;
     }
 
+   	/* Give time to bt_ready sequence */
+	k_sleep(K_SECONDS(6));
+
+    printk("BLE disable\n");
+    err = bt_disable();
+    if (err) {
+        printk("Bluetooth disable failed (err %d)\n", err);
+    }
+    
     printk("Bluetooth init done.\n");
 
     // ----- State machine init -----
@@ -272,27 +284,17 @@ int main(void) {
     button_reset_state(&door_sw_context);
     button_reset_state(&ctrl_sw_context);
 
-    // ------ Main loop -------
-    err = bt_ready();
-    if (err)
-    {
-        printk("Bluetooth ready failed (err %d)\n", err);
-
-        for (int i=0; i<10; ++i)
-        {
-            gpio_pin_set_dt(&buzzer, 1);
-            k_msleep(100);
-            gpio_pin_set_dt(&buzzer, 0);
-            k_msleep(1000);
-        } 
-        return 0;
-    }
-
-    printk("Bluetooth ready.\n");
-
     // ----- Main loop -----
     for (;;)
     {
+        /* Initialize the Bluetooth Subsystem */
+	    err = bt_enable(bt_ready);
+	    if (err) {
+		    printk("Bluetooth reinit failed (err %d)\n", err);
+	    }
+
+        /* Give time to bt_ready sequence */
+	    k_sleep(K_SECONDS(6));
 
         /* Get temp & humidity */
         struct sensor_value temp, hum;
@@ -355,7 +357,15 @@ int main(void) {
                 k_msleep(1000);
             }
         }
-        k_sleep(K_MSEC(BT_GAP_ADV_SLOW_INT_MIN));
+
+        printk("BLE disable\n");
+        err = bt_disable();
+	    if (err) {
+		    printk("Bluetooth disable failed (err %d)\n", err);
+	    }
+
+        k_sleep(K_SECONDS(20));
+        //k_sleep(K_MINUTES(5));
     }
     return 0;
 }
