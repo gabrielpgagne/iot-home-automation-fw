@@ -110,7 +110,7 @@
 			],
 			"group": {
 				"kind": "build",
-				"isDefault": false
+				"isDefault": false,
 			},
 			"problemMatcher": [
 				"$gcc"

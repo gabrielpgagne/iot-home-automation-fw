@@ -196,8 +196,6 @@ int main(void) {
     gpio_pin_set_dt(&led, 0);
     k_msleep(100);
 
-    printk("Yo\n");
-
     // ----- Init userlink blink -----
     status_ok = blinker_init(
                 &userled_blinker_context,
@@ -285,22 +283,18 @@ int main(void) {
     button_reset_state(&ctrl_sw_context);
 
     // ----- Main loop -----
+    int temp_sensor_count = 0;
     for (;;)
     {
-        /* Initialize the Bluetooth Subsystem */
-	    err = bt_enable(bt_ready);
-	    if (err) {
-		    printk("Bluetooth reinit failed (err %d)\n", err);
-	    }
-
-        /* Give time to bt_ready sequence */
-	    k_sleep(K_SECONDS(6));
+        bool state_changed = false;
 
         /* Get temp & humidity */
         struct sensor_value temp, hum;
-
-        if (device_is_ready(sht))
+        ++temp_sensor_count;
+        if (temp_sensor_count >= 5 && device_is_ready(sht))
         {
+            temp_sensor_count = 0;
+
             int err = sensor_sample_fetch(sht);
             if (err == 0)
             {
@@ -322,11 +316,23 @@ int main(void) {
                 double fhumd = sensor_value_to_double(&hum);
                 // printf("SHT: %.2f Cel ; %0.2f %%RH\n", ftemp, fhumd);
 
-                service_data[IDX_TEMPH] = (int)(ftemp * 100) >> 8;
-                service_data[IDX_TEMPL] = (int)(ftemp * 100) & 0xff;
+                int temp_h = (int)(ftemp * 100) >> 8;
+                int temp_l = (int)(ftemp * 100) & 0xff;
+                int hum_h = (int)(fhumd * 100) >> 8;
+                int hum_l = (int)(fhumd * 100) & 0xff;
 
-                service_data[IDX_HUMDH] = (int)(fhumd * 100) >> 8;
-                service_data[IDX_HUMDL] = (int)(fhumd * 100) & 0xff;
+                if (service_data[IDX_TEMPH] != temp_h
+                    || service_data[IDX_TEMPL] != temp_l
+                    || service_data[IDX_HUMDH] != hum_h
+                    || service_data[IDX_HUMDL] != hum_l)
+                {
+                    service_data[IDX_TEMPH] = temp_h;
+                    service_data[IDX_TEMPL] = temp_l;
+
+                    service_data[IDX_HUMDH] = hum_h;
+                    service_data[IDX_HUMDL] = hum_l;
+                    state_changed = true;
+                }
             }
         }
         else
@@ -340,29 +346,45 @@ int main(void) {
         }
 
         /* Get door state */
-        bool door_open = door_sw_context.pressed == 0;
-        service_data[IDX_DOOR] = door_open ? 1 : 0;
-        printk("Door: %s\n", door_open ? "open" : "closed");
-
-        /* Update advertising data */
-        err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
-        if (err)
+        int door_open = door_sw_context.pressed == 0 ? 1 : 0;
+        
+        if (service_data[IDX_DOOR] != door_open)
         {
-            printk("Failed to update advertising data (err %d)\n", err);
-            for (int i=0; i<20; ++i)
+            service_data[IDX_DOOR] = door_open;
+            state_changed = true;
+        }
+    
+        /* Update advertising data */
+        if (state_changed)
+        {
+            /* Initialize the Bluetooth Subsystem */
+            err = bt_enable(bt_ready);
+            if (err) {
+                printk("Bluetooth reinit failed (err %d)\n", err);
+            }
+
+            /* Give time to bt_ready sequence */
+            k_sleep(K_SECONDS(6));
+
+            err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
+            if (err)
             {
-                gpio_pin_set_dt(&buzzer, 1);
-                k_msleep(100);
-                gpio_pin_set_dt(&buzzer, 0);
-                k_msleep(1000);
+                printk("Failed to update advertising data (err %d)\n", err);
+                for (int i=0; i<20; ++i)
+                {
+                    gpio_pin_set_dt(&buzzer, 1);
+                    k_msleep(100);
+                    gpio_pin_set_dt(&buzzer, 0);
+                    k_msleep(1000);
+                }
+            }
+
+            printk("BLE disable\n");
+            err = bt_disable();
+            if (err) {
+                printk("Bluetooth disable failed (err %d)\n", err);
             }
         }
-
-        printk("BLE disable\n");
-        err = bt_disable();
-	    if (err) {
-		    printk("Bluetooth disable failed (err %d)\n", err);
-	    }
 
         k_sleep(K_SECONDS(20));
         //k_sleep(K_MINUTES(5));
