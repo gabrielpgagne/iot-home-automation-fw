@@ -225,7 +225,7 @@ int main(void) {
         printk("Button 1 Init failed\n");
         return -1;
     }
-    printk("bot2\n");
+
     status_ok = button_init(&ctrl_sw_context,
                         &ctrl_sw,
                         ctrl_button_event_handler,
@@ -245,7 +245,7 @@ int main(void) {
         printk("Found device %s. Reading sensor data\n", sht->name);
     }
     
-    // ----- SHT init -----
+    // ----- BT init -----
     printk("CONFIG_BT_DEVICE_NAME: %s\n", CONFIG_BT_DEVICE_NAME);
 
    	int err = bt_enable(bt_ready);
@@ -286,6 +286,15 @@ int main(void) {
     int temp_sensor_count = 0;
     for (;;)
     {
+        /* Initialize the Bluetooth Subsystem */
+        err = bt_enable(bt_ready);
+        if (err) {
+            printk("Bluetooth reinit failed (err %d)\n", err);
+        }
+
+        /* Give time to bt_ready sequence */
+        k_sleep(K_SECONDS(1));
+
         bool state_changed = false;
 
         /* Get temp & humidity */
@@ -357,14 +366,6 @@ int main(void) {
         /* Update advertising data */
         if (state_changed)
         {
-            /* Initialize the Bluetooth Subsystem */
-            err = bt_enable(bt_ready);
-            if (err) {
-                printk("Bluetooth reinit failed (err %d)\n", err);
-            }
-
-            /* Give time to bt_ready sequence */
-            k_sleep(K_SECONDS(6));
 
             err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
             if (err)
@@ -378,15 +379,15 @@ int main(void) {
                     k_msleep(1000);
                 }
             }
-
-            printk("BLE disable\n");
-            err = bt_disable();
-            if (err) {
-                printk("Bluetooth disable failed (err %d)\n", err);
-            }
         }
 
-        k_sleep(K_SECONDS(20));
+        printk("BLE disable\n");
+        err = bt_disable();
+        if (err) {
+            printk("Bluetooth disable failed (err %d)\n", err);
+        }
+
+        k_sleep(K_SECONDS(30));
         //k_sleep(K_MINUTES(5));
     }
     return 0;
