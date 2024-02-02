@@ -55,9 +55,11 @@ void set_random_bt_address(void)
 
     int err;
 
-    printk("Go Static\n");
+    printk("Set address.\n");
     err = bt_addr_le_create_static(&addr);  // Won't work.
 
+    // Got an error, but bt_addr_le_create_static is necessary.
+    // Need conversion to static ?
     if (err) {
         printk("Error bt_addr_le_create_static (err %d)\n", err);
     }
@@ -101,26 +103,67 @@ int main(void)
 
     set_random_bt_address();
 
-    /* Initialize the Bluetooth Subsystem */
-    err = bt_enable(bt_ready);
-    if (err) {
-        printk("Bluetooth init failed (err %d)\n", err);
-        return 0;
-    }
+    int sequence_count = 0;
 
     for (;;) {
-        printk("yo\n");
+        printk("Start loop.\n");
+
         /* Simulate temperature from 0C to 25C */
         service_data[IDX_TEMPH] = (temp * 100) >> 8;
         service_data[IDX_TEMPL] = (temp * 100) & 0xff;
         if (temp++ == 25) {
             temp = 0;
         }
-        err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
-        if (err) {
-            printk("Failed to update advertising data (err %d)\n", err);
+    
+        if (sequence_count<=0)
+        {
+            printk("Start Advertisement, loop: %d.\n", sequence_count);
+
+            /* Initialize the Bluetooth Subsystem */
+            err = bt_enable(bt_ready);
+            if (err) {
+                printk("Bluetooth init failed (err %d)\n", err);
+                return 0;
+            }
+
+            // Wait up to 10 seconds for BT ready.
+            for (int try_count=0; try_count<100; ++try_count)
+            {
+                k_msleep(100);
+                if (bt_is_ready())
+                {
+                    break;
+                }
+            }
+            k_msleep(100);
+
+            printk("Advertisement started.\n");
+
+            // Update data
+            err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
+            if (err) {
+                printk("Failed to update advertising data (err %d)\n", err);
+            }
+
+            // Give time to transmit
+            k_sleep(K_SECONDS(30));
+
+            // Go to sleep.
+            err = bt_disable();
+            if (err) {
+                printk("Failed to stop bluetooth (err %d)\n", err);
+            }
+
+            printk("Advertisement stopped.\n");
+
+            sequence_count = 10;
         }
-        k_sleep(K_MINUTES(10));
+        else
+        {
+            --sequence_count;
+        }
+    
+        k_sleep(K_MINUTES(1));
     }
     return 0;
 }
