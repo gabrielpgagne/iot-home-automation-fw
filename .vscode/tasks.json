@@ -144,6 +144,7 @@
 				"app",
 				"tests/button_test",
 				"tests/blinker_test",
+				"tests/bthome_sensor_template",
 			]
 		}
 	]
