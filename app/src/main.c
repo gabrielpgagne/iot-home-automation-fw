@@ -84,6 +84,7 @@ static const struct bt_data ad[] = {
                     BT_GAP_ADV_FAST_INT_MAX_2, NULL)
 */
 
+
 #define ADV_PARAMS BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY, \
           BT_GAP_ADV_SLOW_INT_MIN, \
           BT_GAP_ADV_SLOW_INT_MAX, NULL)
@@ -159,18 +160,34 @@ static void door_button_event_handler(enum button_evt evt, long)
  * Bluetooth functions.
  ****************************************************************************
  */
-static void bt_ready(int err)
-{
-    printk("Bluetooth initialized\n");
 
-    /* Start advertising */
-    err = bt_le_adv_start(ADV_PARAMS, ad, ARRAY_SIZE(ad), NULL, 0);
+void set_random_bt_address(void)
+{
+    bt_addr_le_t addr;
+
+    addr.a.val[0] = 0xfd;
+    addr.a.val[1] = 0xab;
+    addr.a.val[2] = 0x55;
+    addr.a.val[3] = 0xa7;
+    addr.a.val[4] = 0x28;
+    addr.a.val[5] = 0xf9;
+    addr.type = BT_ADDR_LE_RANDOM;
+
+	//BT_ADDR_SET_STATIC(&(addr.a));
+ 
+    int err;
+
+    printk("Set address.\n");
+
+    err = bt_id_create(&addr, NULL);    // Change Identity->F9:28:A7:55:AB:FD (random)
+
     if (err) {
-        printk("Advertising failed to start (err %d)\n", err);
+        printk("Error bt_id_create (err %d)\n", err);
     }
 
-    printk("Advertising started.\n");
+    printk("Random address set %d %x:%x:%x:%x:%x:%x\n", addr.type, addr.a.val[0], addr.a.val[1], addr.a.val[2], addr.a.val[3], addr.a.val[4], addr.a.val[5]);
 }
+
 
 /*
  ***************************************************************************
@@ -247,7 +264,9 @@ int main(void) {
     // ----- BT init -----
     printk("CONFIG_BT_DEVICE_NAME: %s\n", CONFIG_BT_DEVICE_NAME);
 
-   	int err = bt_enable(bt_ready);
+    set_random_bt_address();
+
+   	int err = bt_enable(NULL);
     if (err)
     {
         printk("Bluetooth init failed (err %d)\n", err);
@@ -262,22 +281,7 @@ int main(void) {
 
         return 0;
     }
-
-   	/* Give time to bt_ready sequence */
-	k_sleep(K_SECONDS(6));
-
-    // printk("BLE disable\n");
-    // err = bt_disable();
-    // if (err) {
-    //     printk("Bluetooth disable failed (err %d)\n", err);
-    // }
     
-    /* Start advertising */
-    err = bt_le_adv_stop();
-    if (err) {
-        printk("Advertising failed to stop 1 (err %d)\n", err);
-    }
-
     printk("Bluetooth init done.\n");
 
     // ----- State machine init -----
@@ -288,35 +292,14 @@ int main(void) {
     button_reset_state(&ctrl_sw_context);
 
     // ----- Main loop -----
-    int temp_sensor_count = 1000;   // Sure to be called the first iteration.
+    int loop_count = 0;   // Sure to be called the first iteration.
     for (;;)
     {
-        /* Initialize the Bluetooth Subsystem */
-        // Todo try with stop/start advertizing.
-        // err = bt_enable(bt_ready);
-        // if (err) {
-        //     printk("Bluetooth reinit failed (err %d)\n", err);
-        // }
-
-        /* Start advertising */
-        err = bt_le_adv_start(ADV_PARAMS, ad, ARRAY_SIZE(ad), NULL, 0);
-        if (err) {
-            printk("Advertising failed to start (err %d)\n", err);
-        }
-
-        
-        /* Give time to bt_ready sequence */
-        k_sleep(K_SECONDS(3));
-
-        bool state_changed = false;
-
         /* Get temp & humidity */
         struct sensor_value temp, hum;
-        ++temp_sensor_count;
-        if (temp_sensor_count >= 4 && device_is_ready(sht))
-        {
-            temp_sensor_count = 0;
 
+        if (loop_count<=0 && device_is_ready(sht))
+        {
             int err = sensor_sample_fetch(sht);
             if (err == 0)
             {
@@ -353,23 +336,13 @@ int main(void) {
 
                     service_data[IDX_HUMDH] = hum_h;
                     service_data[IDX_HUMDL] = hum_l;
-                    state_changed = true;
                 }
             }
         }
-        // else
-        // {
-        //     // No device present or not responding
-        //     service_data[IDX_TEMPH] = 0;
-        //     service_data[IDX_TEMPL] = 0;
-
-        //     service_data[IDX_HUMDH] = 0;
-        //     service_data[IDX_HUMDL] = 0;
-        // }
 
         /* Get door state */
         int door_open = door_sw_context.pressed == 0 ? 1 : 0;
-        
+        bool state_changed = false;
         if (service_data[IDX_DOOR] != door_open)
         {
             service_data[IDX_DOOR] = door_open;
@@ -377,8 +350,14 @@ int main(void) {
         }
     
         /* Update advertising data */
-        if (state_changed)
+        if (state_changed || door_open || loop_count <= 0)
         {
+            /* Start advertising */
+            err = bt_le_adv_start(ADV_PARAMS, ad, ARRAY_SIZE(ad), NULL, 0);
+            if (err) {
+                printk("Advertising failed to start (err %d)\n", err);
+            }
+
             err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
             if (err)
             {
@@ -393,15 +372,16 @@ int main(void) {
             }
             else{
                 printk("Advertising data updated\n");
-                k_sleep(K_SECONDS(6));
             }
         }
 
-        // printk("BLE disable\n");
-        // err = bt_disable();
-        // if (err) {
-        //     printk("Bluetooth disable failed (err %d)\n", err);
-        // }
+        if (loop_count <= 0)
+        {
+            // Next forced advertizement in 20 loops, i.e. 20*30 sec = 10 min.
+            loop_count = 20;
+        }
+
+        k_sleep(K_SECONDS(10));
 
         /* Stop advertising */
         err = bt_le_adv_stop();
@@ -409,8 +389,9 @@ int main(void) {
             printk("Advertising failed to stop (err %d)\n", err);
         }
 
-        k_sleep(K_SECONDS(30));
-        //k_sleep(K_MINUTES(5));
+        k_sleep(K_SECONDS(20));
+
+        // Loop total time is 30 sec.
     }
     return 0;
 }
