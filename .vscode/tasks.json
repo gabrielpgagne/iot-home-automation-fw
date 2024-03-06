@@ -4,10 +4,7 @@
 		{
 			"label": "West Build",
 			"type": "shell",
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			},
+			"group": "build",
 			"linux": {
 				"command": "${workspaceFolder}/.venv/bin/python"
 			},
@@ -36,7 +33,7 @@
 			"type": "shell",
 			"group": {
 				"kind": "build",
-				"isDefault": false
+				"isDefault": true
 			},
 			"linux": {
 				"command": "${workspaceFolder}/.venv/bin/python"
@@ -110,7 +107,7 @@
 			],
 			"group": {
 				"kind": "build",
-				"isDefault": false,
+				"isDefault": false
 			},
 			"problemMatcher": [
 				"$gcc"
@@ -145,6 +142,7 @@
 				"tests/button_test",
 				"tests/blinker_test",
 				"tests/bthome_sensor_template",
+				"tests/thermometre",
 			]
 		}
 	]

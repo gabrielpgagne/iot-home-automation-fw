@@ -9,7 +9,7 @@
 #include <zephyr/types.h>
 #include <zephyr/bluetooth/addr.h>
 #include <zephyr/bluetooth/hci.h>
-
+#include <zephyr/settings/settings.h>
 
 
 #define SERVICE_DATA_LEN        9
@@ -45,22 +45,76 @@ static struct bt_data ad[] = {
     BT_DATA(BT_DATA_SVC_DATA16, service_data, ARRAY_SIZE(service_data))
 };
 
+void set_address()
+{
+    bt_addr_le_t addr[CONFIG_BT_ID_MAX];
+    size_t count;
+    char bt_addr_str[BT_ADDR_LE_STR_LEN];
+
+    int err;
+
+    err = settings_load();
+    if (err) {
+        printk("Error settings_load (err %d)\n", err);
+    }
+
+    bt_id_get(NULL, &count);
+    printk("bt_id_get count %d\n", count);
+    count = CONFIG_BT_ID_MAX;
+    bt_id_get(addr, &count);
+
+    bt_addr_le_to_str(&addr[count-1], bt_addr_str, BT_ADDR_LE_STR_LEN);
+    printk("Random address preset %s\n", bt_addr_str);
+
+    // Need CONFIG_BT_ID_MAX=2 in prj.conf
+    err = bt_id_create(NULL, NULL);    // Change Identity->F9:28:A7:55:AB:FD (random)
+    //err = bt_id_reset(0, NULL, NULL);
+
+    if (err<0) {
+        printk("Error bt_id_create (err %d)\n", err);
+    }
+    else {
+        err = settings_save();
+        if (err<0) {
+           printk("Error settings_save (err %d)\n", err);
+        }
+    }
+
+
+    bt_id_get(NULL, &count);
+    printk("bt_id_get count %d\n", count);
+    count = CONFIG_BT_ID_MAX;
+    bt_id_get(addr, &count);
+
+    bt_addr_le_to_str(&addr[1], bt_addr_str, BT_ADDR_LE_STR_LEN);
+    printk("Random address set %s\n", bt_addr_str);
+}
 
 void set_random_bt_address(void)
 {
     bt_addr_le_t addr;
 
-    addr.a.val[0] = 0xfd;
-    addr.a.val[1] = 0xab;
-    addr.a.val[2] = 0x55;
-    addr.a.val[3] = 0xa7;
-    addr.a.val[4] = 0x28;
-    addr.a.val[5] = 0xf9;
+    addr.a.val[0] = 0x7f;
+    addr.a.val[1] = 0x6e;
+    addr.a.val[2] = 0x5d;
+    addr.a.val[3] = 0x4c;
+    addr.a.val[4] = 0x7b;
+    addr.a.val[5] = 0x3a;
     addr.type = BT_ADDR_LE_RANDOM;
-
-	//BT_ADDR_SET_STATIC(&(addr.a));
+    //BT_ADDR_SET_STATIC(&addr.a);
  
     int err;
+
+    //bt_addr_le_copy(&addr, BT_ADDR_LE_NONE);
+    //if (err) {
+    //    printk("Error bt_addr_le_copy (err %d)\n", err);
+    //}
+
+    //err = bt_addr_le_create_static(&addr);
+    //if (err) {
+    //    printk("Error bt_addr_le_create_static (err %d)\n", err);
+    //}
+    //printk("Random address set %d %x:%x:%x:%x:%x:%x\n", addr.type, addr.a.val[0], addr.a.val[1], addr.a.val[2], addr.a.val[3], addr.a.val[4], addr.a.val[5]);
 
     printk("Set address.\n");
 
@@ -70,7 +124,9 @@ void set_random_bt_address(void)
         printk("Error bt_id_create (err %d)\n", err);
     }
 
-    printk("Random address set %d %x:%x:%x:%x:%x:%x\n", addr.type, addr.a.val[0], addr.a.val[1], addr.a.val[2], addr.a.val[3], addr.a.val[4], addr.a.val[5]);
+    char bt_addr_str[BT_ADDR_LE_STR_LEN];
+    bt_addr_le_to_str(&addr, bt_addr_str, BT_ADDR_LE_STR_LEN);
+    printk("Random address set %s\n", bt_addr_str);
 }
 
 #if False
@@ -163,7 +219,9 @@ int main(void)
         printk("Bluetooth init failed (err %d)\n", err);
         return 0;
     }
-    
+
+    // set_address();
+
     printk("Bluetooth initialized\n");
 
     // Wait up to 10 seconds for BT ready.
