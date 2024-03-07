@@ -84,6 +84,7 @@ static const struct bt_data ad[] = {
                     BT_GAP_ADV_FAST_INT_MAX_2, NULL)
 */
 
+
 #define ADV_PARAMS BT_LE_ADV_PARAM(BT_LE_ADV_OPT_USE_IDENTITY, \
           BT_GAP_ADV_SLOW_INT_MIN, \
           BT_GAP_ADV_SLOW_INT_MAX, NULL)
@@ -159,19 +160,34 @@ static void door_button_event_handler(enum button_evt evt, long)
  * Bluetooth functions.
  ****************************************************************************
  */
-static int bt_ready() {
 
-    printk("Bluetooth initialized\n");
+void set_random_bt_address(void)
+{
+    bt_addr_le_t addr;
 
-    /* Start advertising */
-    int err = bt_le_adv_start(ADV_PARAMS, ad, ARRAY_SIZE(ad), NULL, 0);
+    addr.a.val[0] = 0xfd;
+    addr.a.val[1] = 0xab;
+    addr.a.val[2] = 0x55;
+    addr.a.val[3] = 0xa7;
+    addr.a.val[4] = 0x28;
+    addr.a.val[5] = 0xf9;
+    addr.type = BT_ADDR_LE_RANDOM;
+
+	//BT_ADDR_SET_STATIC(&(addr.a));
+ 
+    int err;
+
+    printk("Set address.\n");
+
+    err = bt_id_create(&addr, NULL);    // Change Identity->F9:28:A7:55:AB:FD (random)
+
     if (err) {
-        printk("Advertising failed to start (err %d)\n", err);
+        printk("Error bt_id_create (err %d)\n", err);
     }
 
-    printk("Advertising started.\n");
-    return err;
+    printk("Random address set %d %x:%x:%x:%x:%x:%x\n", addr.type, addr.a.val[0], addr.a.val[1], addr.a.val[2], addr.a.val[3], addr.a.val[4], addr.a.val[5]);
 }
+
 
 /*
  ***************************************************************************
@@ -207,7 +223,6 @@ int main(void) {
                 &buzzer_blinker_context,
                 buzzer_event_handler,
                 0);
- //   blinker_sequence2(&userled_blinker_context, 1000, 1000);
 
     // ----- We use a blinker in a monostable fashion as a timer -----
     status_ok = blinker_init(
@@ -246,8 +261,12 @@ int main(void) {
         printk("Found device %s. Reading sensor data\n", sht->name);
     }
     
+    // ----- BT init -----
     printk("CONFIG_BT_DEVICE_NAME: %s\n", CONFIG_BT_DEVICE_NAME);
-    int err = bt_enable(NULL);
+
+    set_random_bt_address();
+
+   	int err = bt_enable(NULL);
     if (err)
     {
         printk("Bluetooth init failed (err %d)\n", err);
@@ -262,7 +281,7 @@ int main(void) {
 
         return 0;
     }
-
+    
     printk("Bluetooth init done.\n");
 
     // ----- State machine init -----
@@ -272,32 +291,14 @@ int main(void) {
     button_reset_state(&door_sw_context);
     button_reset_state(&ctrl_sw_context);
 
-    // ------ Main loop -------
-    err = bt_ready();
-    if (err)
-    {
-        printk("Bluetooth ready failed (err %d)\n", err);
-
-        for (int i=0; i<10; ++i)
-        {
-            gpio_pin_set_dt(&buzzer, 1);
-            k_msleep(100);
-            gpio_pin_set_dt(&buzzer, 0);
-            k_msleep(1000);
-        } 
-        return 0;
-    }
-
-    printk("Bluetooth ready.\n");
-
     // ----- Main loop -----
+    int loop_count = 0;   // Sure to be called the first iteration.
     for (;;)
     {
-
         /* Get temp & humidity */
         struct sensor_value temp, hum;
 
-        if (device_is_ready(sht))
+        if (loop_count<=0 && device_is_ready(sht))
         {
             int err = sensor_sample_fetch(sht);
             if (err == 0)
@@ -320,42 +321,77 @@ int main(void) {
                 double fhumd = sensor_value_to_double(&hum);
                 // printf("SHT: %.2f Cel ; %0.2f %%RH\n", ftemp, fhumd);
 
-                service_data[IDX_TEMPH] = (int)(ftemp * 100) >> 8;
-                service_data[IDX_TEMPL] = (int)(ftemp * 100) & 0xff;
+                int temp_h = (int)(ftemp * 100) >> 8;
+                int temp_l = (int)(ftemp * 100) & 0xff;
+                int hum_h = (int)(fhumd * 100) >> 8;
+                int hum_l = (int)(fhumd * 100) & 0xff;
 
-                service_data[IDX_HUMDH] = (int)(fhumd * 100) >> 8;
-                service_data[IDX_HUMDL] = (int)(fhumd * 100) & 0xff;
+                if (service_data[IDX_TEMPH] != temp_h
+                    || service_data[IDX_TEMPL] != temp_l
+                    || service_data[IDX_HUMDH] != hum_h
+                    || service_data[IDX_HUMDL] != hum_l)
+                {
+                    service_data[IDX_TEMPH] = temp_h;
+                    service_data[IDX_TEMPL] = temp_l;
+
+                    service_data[IDX_HUMDH] = hum_h;
+                    service_data[IDX_HUMDL] = hum_l;
+                }
             }
-        }
-        else
-        {
-            // No device present or not responding
-            service_data[IDX_TEMPH] = 0;
-            service_data[IDX_TEMPL] = 0;
-
-            service_data[IDX_HUMDH] = 0;
-            service_data[IDX_HUMDL] = 0;
         }
 
         /* Get door state */
-        bool door_open = door_sw_context.pressed == 0;
-        service_data[IDX_DOOR] = door_open ? 1 : 0;
-        printk("Door: %s\n", door_open ? "open" : "closed");
-
-        /* Update advertising data */
-        err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
-        if (err)
+        int door_open = door_sw_context.pressed == 0 ? 1 : 0;
+        bool state_changed = false;
+        if (service_data[IDX_DOOR] != door_open)
         {
-            printk("Failed to update advertising data (err %d)\n", err);
-            for (int i=0; i<20; ++i)
+            service_data[IDX_DOOR] = door_open;
+            state_changed = true;
+        }
+    
+        /* Update advertising data */
+        if (state_changed || door_open || loop_count <= 0)
+        {
+            /* Start advertising */
+            err = bt_le_adv_start(ADV_PARAMS, ad, ARRAY_SIZE(ad), NULL, 0);
+            if (err) {
+                printk("Advertising failed to start (err %d)\n", err);
+            }
+
+            err = bt_le_adv_update_data(ad, ARRAY_SIZE(ad), NULL, 0);
+            if (err)
             {
-                gpio_pin_set_dt(&buzzer, 1);
-                k_msleep(100);
-                gpio_pin_set_dt(&buzzer, 0);
-                k_msleep(1000);
+                printk("Failed to update advertising data (err %d)\n", err);
+                for (int i=0; i<20; ++i)
+                {
+                    gpio_pin_set_dt(&buzzer, 1);
+                    k_msleep(100);
+                    gpio_pin_set_dt(&buzzer, 0);
+                    k_msleep(1000);
+                }
+            }
+            else{
+                printk("Advertising data updated\n");
             }
         }
-        k_sleep(K_MSEC(BT_GAP_ADV_SLOW_INT_MIN));
+
+        if (loop_count <= 0)
+        {
+            // Next forced advertizement in 20 loops, i.e. 20*30 sec = 10 min.
+            loop_count = 20;
+        }
+
+        k_sleep(K_SECONDS(10));
+
+        /* Stop advertising */
+        err = bt_le_adv_stop();
+        if (err) {
+            printk("Advertising failed to stop (err %d)\n", err);
+        }
+
+        k_sleep(K_SECONDS(20));
+
+        // Loop total time is 30 sec.
     }
     return 0;
 }

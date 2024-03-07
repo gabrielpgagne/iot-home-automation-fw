@@ -3,8 +3,8 @@
 #ifndef _BUTTON_H_
 #define _BUTTON_H_
 
-#include "zephyr/dt-bindings/gpio/gpio.h"
-#include "zephyr/sys/time_units.h"
+#include <zephyr/dt-bindings/gpio/gpio.h>
+#include <zephyr/sys/time_units.h>
 #include <zephyr/device.h>
 #include <zephyr/devicetree.h>
 #include <zephyr/drivers/gpio.h>

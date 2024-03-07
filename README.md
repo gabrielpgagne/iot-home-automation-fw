@@ -70,6 +70,9 @@ It is also possible to do it manually:
 
     west flash
 
+## config
+
+    west build -t guiconfig
 
 ## Credits
 

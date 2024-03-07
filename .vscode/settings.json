@@ -10,7 +10,9 @@
 		"files.associations": {
 			"locale": "c",
 			"kernel.h": "c",
-			"gpio.h": "c"
+			"gpio.h": "c",
+			"crypto.h": "c",
+			"settings.h": "c"
 		},
 
 		// Auto activate environement
