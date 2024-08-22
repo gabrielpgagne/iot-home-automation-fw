@@ -9,13 +9,13 @@
 				"isDefault": true
 			},
 			"linux": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"windows": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"osx": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"args": [
 				"-m",
@@ -39,13 +39,13 @@
 				"isDefault": false
 			},
 			"linux": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"windows": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"osx": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"args": [
 				"-m",
@@ -69,13 +69,13 @@
 				"isDefault": false
 			},
 			"linux": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"windows": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"osx": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"args": [
 				"-m",
@@ -95,13 +95,13 @@
 			"label": "West Flash",
 			"type": "shell",
 			"linux": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"windows": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"osx": {
-				"command": "${workspaceFolder}/.venv/bin/python"
+				"command": "${workspaceFolder}/.venv/bin/python3"
 			},
 			"args": [
 				"-m",
