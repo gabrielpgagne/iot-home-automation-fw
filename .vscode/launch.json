@@ -10,7 +10,7 @@
             "type": "cortex-debug",
             "runToEntryPoint": "main",
             "servertype": "stlink",
-            "gdbPath": "${userHome}/zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
+            "gdbPath": "../zephyr-sdk-0.16.8/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb",
             "preLaunchTask": "West Build"
         },
         {
@@ -22,7 +22,7 @@
             "type": "cortex-debug",
             "runToEntryPoint": "main",
             "servertype": "stlink",
-            "gdbPath": "${userHome}/zephyr-sdk-0.16.4/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb"
+            "gdbPath": "../zephyr-sdk-0.16.8/arm-zephyr-eabi/bin/arm-zephyr-eabi-gdb"
         },
     ]
 }

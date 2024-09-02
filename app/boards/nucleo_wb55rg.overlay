@@ -23,12 +23,12 @@
 		compatible = "ti,opt3001";
 		reg = <0x44>;
 	};
-    shtcx: shtcx@70 {
-		compatible = "sensirion,shtcx";
-		reg = <0x70>;
-		chip = "shtc3";
-		measure-mode = "normal";
-	};
+	shtcx: shtc3@70 {
+      compatible = "sensirion,shtc3", "sensirion,shtcx";
+      reg = <0x70>;
+      measure-mode = "normal";
+      clock-stretching;
+   };
 };
 
 &gpioa {

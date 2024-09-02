@@ -36,12 +36,20 @@ Then, for an intree configuration:
     source .venv/bin/activate
     python -m pip install --upgrade pip
     pip install west
-    west init .
+    west init . --mr v3.7.0
     west update
     west zephyr-export
-    pip install -r ~/zephyrproject/zephyr/scripts/requirements.txt
+    pip install -r zephyr/scripts/requirements.txt
 
 Do not forget to register the environement in VSCode.
+
+NB: to update to a new release of zephyr-os, start by erasing the .west directory
+and the zephyr directory, then do:
+
+    west init . --mr v3.x.x
+    west update
+    west zephyr-export
+    pip install -r zephyr/scripts/requirements.txt --upgrade
 
 Then, refer to "Install the Zephyr SDK" in <https://docs.zephyrproject.org/latest/develop/getting_started/index.html> in order to install the different MCU compilers and utilities
 
@@ -63,8 +71,7 @@ It is also possible to do it manually:
 
 - To build the code:
 
-    west build -b nucleo_wb55rg -p always application/
-    // west -z /Volumes/External/zephyrproject/zephyr  build -b nucleo_wb55rg -p always application
+    west build -b nucleo_wb55rg -p always app/
 
 - To flash:
 
