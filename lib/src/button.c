@@ -62,7 +62,7 @@ bool button_init(struct button_context * button_config,
     k_timer_init(&button_config->debounce_timer, button_handler, NULL);
 
     // Configure button pin with interrupts
-    gpio_pin_configure(button_config->dev, button_config->pin, button_config->flags | GPIO_INPUT | GPIO_INT_EDGE_BOTH | options);
+    gpio_pin_configure(button_config->dev, button_config->pin, button_config->flags | GPIO_INPUT | options);
 
     // Initialize and add the GPIO callback
     gpio_init_callback(&button_config->gpio_cb, button_isr_callback, BIT(button_config->pin));
