@@ -4,33 +4,6 @@
 		{
 			"label": "West Build",
 			"type": "shell",
-			"group": "build",
-			"linux": {
-				"command": "${workspaceFolder}/.venv/bin/python3"
-			},
-			"windows": {
-				"command": "${workspaceFolder}/.venv/bin/python3"
-			},
-			"osx": {
-				"command": "${workspaceFolder}/.venv/bin/python3"
-			},
-			"args": [
-				"-m",
-				"west",
-				"build",
-				"-p",
-				"auto",
-				"-b",
-				"nucleo_wb55rg",
-				"app"
-			],
-			"problemMatcher": [
-				"$gcc"
-			]
-		},
-		{
-			"label": "West Build Current",
-			"type": "shell",
 			"group": {
 				"kind": "build",
 				"isDefault": true
@@ -52,7 +25,37 @@
 				"auto",
 				"-b",
 				"nucleo_wb55rg",
-				"${fileDirname}/.."
+				"${workspaceFolder}/app"
+			],
+			"problemMatcher": [
+				"$gcc"
+			]
+		},
+		{
+			"label": "West Build Current",
+			"type": "shell",
+			"group": {
+				"kind": "build",
+				"isDefault": false
+			},
+			"linux": {
+				"command": "${workspaceFolder}/.venv/bin/python3"
+			},
+			"windows": {
+				"command": "${workspaceFolder}/.venv/bin/python3"
+			},
+			"osx": {
+				"command": "${workspaceFolder}/.venv/bin/python3"
+			},
+			"args": [
+				"-m",
+				"west",
+				"build",
+				"-p",
+				"auto",
+				"-b",
+				"nucleo_wb55rg",
+				"${fileDirname}"
 			],
 			"problemMatcher": [
 				"$gcc"
@@ -81,7 +84,7 @@
 				"-p",
 				"${input:pristine}",
 				"-b",
-				"${input:board}",
+				"nucleo_wb55rg",
 				"${input:target}"
 			],
 			"problemMatcher": [

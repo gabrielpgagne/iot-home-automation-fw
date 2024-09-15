@@ -1,7 +1,4 @@
 #include <assert.h>
-
-
-
 #include "blinker.h"
 
 // Abort immediatly the current blink

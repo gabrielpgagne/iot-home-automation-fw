@@ -14,12 +14,10 @@ const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_ALIAS(statusled), gpios);
 
 static void blinker_event_handler(enum blinker_evt evt, long info)
 {
-	 gpio_pin_set_dt(&led, evt==blinker_EVT_ON ? 1 : 0);
+	gpio_pin_set_dt(&led, evt==BLINKER_EVT_OFF ? 1 : 0);
 }
 
 struct blinker_context blinker;
-const int n_steps = 2;
-unsigned long sequence[] = {1000, 1000};
 
 int main(void)
 {
@@ -27,11 +25,10 @@ int main(void)
 
 	printk("Blinker Sample!\n");
   	gpio_pin_configure_dt(&led, GPIO_OUTPUT);
+	gpio_pin_set_dt(&led, 1);
 
 	ok = blinker_init(
 		&blinker,
-		sequence,
-		n_steps,
 		blinker_event_handler,
 		0);
 
@@ -42,11 +39,14 @@ int main(void)
 
 	printk("Init succeeded. Waiting for event...\n");
 
+	// Sequence defined in ms.
+	blinker_sequence2(&blinker, 1000, 500);
 	blinker_start(&blinker, true);
 
     // Main loop
   	while (1) {
-    	k_sleep(K_SECONDS(1)); // Sleep for a while to save power
+		// We can sleep now, the blinker will handle itself.
+    	k_sleep(K_SECONDS(10));
   	}
 
 	return 0;

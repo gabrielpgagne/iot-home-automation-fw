@@ -71,4 +71,3 @@
 &green_led_2 {
 	gpios = < &gpioa 0 GPIO_ACTIVE_HIGH >; // Buzzer
 };
-// TODO add VCC ADC...

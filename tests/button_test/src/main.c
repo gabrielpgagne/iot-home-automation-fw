@@ -23,7 +23,7 @@ struct button_context ctrl_sw_context;	// keep it alive !
 
 static void button_event_handler(enum button_evt evt, long info)
 {
-	printk("Button %d event: %s\n", info, evt == BUTTON_EVT_PRESSED ? "Press" : "Release");
+	printk("Button %ld event: %s\n", info, evt == BUTTON_EVT_PRESSED ? "Press" : "Release");
 }
 
 int main(void)
