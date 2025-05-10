@@ -1,0 +1,67 @@
+/*
+ * Copyright (c) 2023 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+// #include <dt-bindings/regulator/npm1300.h>
+
+/ {
+	// https: //devzone.nordicsemi.com/f/nordic-q-a/108807/nrf5340-zephyr-cannot-disable-led-node
+	aliases {
+		sw0 = &button1;
+		sw1 = &button2;
+		/delete-property/ led2;
+		/delete-property/ led3;
+		/delete-property/ mcuboot-led0;
+	};
+	// chosen {
+		//     zephyr,console = &cdc_acm_uart;
+	// };
+	// /delete-node/ leds;
+};
+
+&led1 {
+	gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+};
+
+
+&i2c0 {
+	shtcx: shtc3@70 {
+		compatible = "sensirion,shtc3", "sensirion,shtcx";
+		reg = <0x70>;
+		measure-mode = "normal";
+		clock-stretching;
+	};
+};
+
+&i2c0_default {
+	group1 {
+		bias-pull-up;
+	};
+};
+
+&zephyr_udc0 {
+	cdc_acm_uart: cdc_acm_uart0 {
+		compatible = "zephyr,cdc-acm-uart";
+		status = "okay";
+	};
+};
+
+// USER_BTN: SIO_32 = P1.0
+&button1 {
+	gpios = <&gpio0 31 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+};
+
+// DOOR_SW: SIO_31 = P0.31
+&button2 {
+	gpios = <&gpio1 0 GPIO_ACTIVE_LOW>;
+};
+
+&gpio0 {
+	wakeup-source;
+};
+
+&gpio1 {
+	wakeup-source;
+};

@@ -1,0 +1,21 @@
+/ {
+    aliases {
+        mcuboot-button0 = &button1;
+        mcuboot-led0 = &led1;
+        led0 = &led1;
+        // /delete-property/ led0;
+        // /delete-property/ led1;
+        // /delete-property/ mcuboot-led0;
+        // /delete-property/ bootloader-led0;
+    };
+    chosen {
+        zephyr,uart-mcumgr = &cdc_acm_uart0;
+    };
+    // /delete-node/ leds;
+};
+
+&zephyr_udc0 {
+    cdc_acm_uart0: cdc_acm_uart0 {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};
