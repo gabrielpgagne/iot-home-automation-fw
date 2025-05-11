@@ -13,7 +13,7 @@
 
         host-int-gpios = <&gpio0 12 0>;
         pmic-int-pin = <1>;
-        long-press-reset = "one-button";
+        // long-press-reset = "one-button";
         // ship-to-active-time = <96>;
 
 
@@ -82,7 +82,7 @@
 
         npm1300_ek_leds: leds {
             compatible = "nordic,npm1300-led";
-            nordic,led0-mode = "error";
+            nordic,led0-mode = "host";
             nordic,led1-mode = "charging";
             nordic,led2-mode = "host";
         };

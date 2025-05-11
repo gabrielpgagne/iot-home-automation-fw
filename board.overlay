@@ -15,9 +15,9 @@
 		/delete-property/ led3;
 		/delete-property/ mcuboot-led0;
 	};
-	// chosen {
-		//     zephyr,console = &cdc_acm_uart;
-	// };
+	chosen {
+		zephyr,console = &cdc_acm_uart;
+	};
 	// /delete-node/ leds;
 };
 
@@ -35,11 +35,11 @@
 	};
 };
 
-&i2c0_default {
-	group1 {
-		bias-pull-up;
-	};
-};
+// &i2c0_default {
+	//     group1 {
+		//         bias-pull-up;
+	//     };
+// };
 
 &zephyr_udc0 {
 	cdc_acm_uart: cdc_acm_uart0 {
@@ -50,12 +50,13 @@
 
 // USER_BTN: SIO_32 = P1.0
 &button1 {
-	gpios = <&gpio0 31 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+	gpios = <&gpio1 0 GPIO_ACTIVE_LOW>;
 };
 
 // DOOR_SW: SIO_31 = P0.31
 &button2 {
-	gpios = <&gpio1 0 GPIO_ACTIVE_LOW>;
+	gpios = <&gpio0 31 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+	// gpios = <&gpio0 31 (GPIO_ACTIVE_HIGH | GPIO_PULL_UP)>;
 };
 
 &gpio0 {

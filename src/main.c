@@ -19,10 +19,13 @@
 #include "redef.h"
 
 #define PWR_BTN_MS 1000
+
+// For LEDs, check config.overlay: only controllable if mode = "host"
+#define NPM_RED_LED 0
+#define NPM_BLUE_LED 1
 #define NPM_GREEN_LED 2
 
 volatile bool vbus_connected;
-bool is_buzzing = false;
 
 // ===================== Devicetree nodes ======================
 
@@ -40,7 +43,8 @@ struct gpio_dt_spec door_btn = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
 
 #define FSM_MEASUREMENT_TIME_IDLE K_MINUTES(10)
 #define FSM_MEASUREMENT_TIME_ACTIVE K_SECONDS(3)
-#define FSM_DOOR_OPEN_GUARD_PERIOD K_SECONDS(3)
+#define FSM_DOOR_OPEN_GUARD_PERIOD K_MINUTES(1)
+#define SILENT_MODE_DURATION K_MINUTES(5)
 
 /* List of events */
 #define EVENT_DOOR_OPEN BIT(0)
@@ -92,6 +96,7 @@ void npm_event_cb(const struct device *dev, struct gpio_callback *cb,
 
   if (pins & BIT(NPM1300_EVENT_VBUS_DETECTED)) {
     printk("Vbus connected\n");
+    led_on(leds, NPM_RED_LED);
     vbus_connected = true;
     int ret = usb_enable(NULL);
     if (ret != 0) {
@@ -101,6 +106,7 @@ void npm_event_cb(const struct device *dev, struct gpio_callback *cb,
 
   if (pins & BIT(NPM1300_EVENT_VBUS_REMOVED)) {
     printk("Vbus removed\n");
+    led_on(leds, NPM_RED_LED);
     vbus_connected = false;
     usb_disable();
   }
@@ -203,14 +209,20 @@ K_TIMER_DEFINE(door_open_wait_timer, door_wait_timer_expired_cb, NULL);
 
 void door_state_changed(const struct device *dev, struct gpio_callback *cb,
                         uint32_t pins) {
-  printk("Door state changed!!!\n");
-  k_timer_start(&door_open_wait_timer, FSM_DOOR_OPEN_GUARD_PERIOD, K_FOREVER);
+  int state = gpio_pin_get_dt(&door_btn);
+  printk("Door state changed to %d\n", state);
+  if (state) {
+    k_timer_start(&door_open_wait_timer, FSM_DOOR_OPEN_GUARD_PERIOD, K_FOREVER);
+  } else {
+    k_timer_start(&door_open_wait_timer, K_NO_WAIT, K_FOREVER);
+  }
 }
 
 // ===================== Silent mode timer ======================
 
 void silent_mode_button_pressed(const struct device *dev,
                                 struct gpio_callback *cb, uint32_t pins) {
+  printk("Silent mode button press %d\n", gpio_pin_get_dt(&user_btn));
   k_event_post(&s_obj.smf_event, EVENT_SILENT_BTN_PRESSED);
 }
 
@@ -231,18 +243,15 @@ K_TIMER_DEFINE(buzzer_timer, buzzer_timer_expired_cb, NULL);
 // ===================== State machine definition ======================
 
 void state_idle_entry(void *o) {
+  printk("Enter idle state\n");
   k_timer_start(&measurement_timer, FSM_MEASUREMENT_TIME_IDLE,
                 FSM_MEASUREMENT_TIME_IDLE);
-  regulator_disable(ldsw);
   k_timer_stop(&buzzer_timer);
   k_timer_stop(&silent_mode_timer);
-  printk("Entered idle\n");
 }
 
 void state_idle_run(void *o) {
   struct s_object *s = (struct s_object *)o;
-
-  // TODO wait some time before buzzing
 
   if (s->events & EVENT_SILENT_BTN_PRESSED) {
     smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_SILENT]);
@@ -252,13 +261,14 @@ void state_idle_run(void *o) {
 }
 
 void state_idle_exit(void *o) {
+  printk("Exit idle state\n");
   k_timer_start(&measurement_timer, FSM_MEASUREMENT_TIME_ACTIVE,
                 FSM_MEASUREMENT_TIME_ACTIVE);
 }
 
 void state_door_open_entry(void *o) {
+  printk("Enter Door open state\n");
   k_timer_start(&buzzer_timer, K_NO_WAIT, K_FOREVER);
-  printk("Door open\n");
 }
 
 void state_door_open_run(void *o) {
@@ -269,9 +279,11 @@ void state_door_open_run(void *o) {
   } else if (s->events & EVENT_DOOR_CLOSE) {
     smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_IDLE]);
   } else if (s->events & EVENT_BUZZER_EXPIRED) {
-    is_buzzing = !is_buzzing;
-    if (is_buzzing) {
-      regulator_enable(ldsw);
+    if (!regulator_is_enabled(ldsw)) {
+      int ret = regulator_enable(ldsw);
+      if (ret) {
+        printk("Failed to enable load switch\n");
+      }
       k_timer_start(&buzzer_timer, K_MSEC(200), K_FOREVER);
     } else {
       regulator_disable(ldsw);
@@ -281,14 +293,16 @@ void state_door_open_run(void *o) {
 }
 
 void state_door_open_exit(void *o) {
-  is_buzzing = false;
+  printk("Exit Door open state\n");
   k_timer_stop(&buzzer_timer);
-  regulator_disable(ldsw);
+  if (regulator_is_enabled(ldsw)) {
+    regulator_disable(ldsw);
+  }
 }
 
 void state_silent_entry(void *o) {
-  k_timer_start(&silent_mode_timer, K_SECONDS(5), K_FOREVER);
-  printk("Entered silent mode\n");
+  printk("Enter silent mode state\n");
+  k_timer_start(&silent_mode_timer, SILENT_MODE_DURATION, K_FOREVER);
 }
 
 void state_silent_run(void *o) {
@@ -304,9 +318,8 @@ void state_silent_run(void *o) {
 }
 
 void state_silent_exit(void *o) {
-  is_buzzing = false;
+  printk("Exit silent mode state\n");
   k_timer_stop(&silent_mode_timer);
-  regulator_disable(ldsw);
 }
 
 static const struct smf_state fsm_states[] = {
@@ -323,7 +336,10 @@ static const struct smf_state fsm_states[] = {
 
 int main(void) {
   int ret;
-  led_on(leds, NPM_GREEN_LED);
+
+  usb_enable(NULL);
+  printk("Initializing...\n");
+
   ret = ble_init();
   if (ret) {
     printk("Failed to initialize BLE (%d)\n", ret);
@@ -335,22 +351,16 @@ int main(void) {
     return 0;
   }
 
+  // FOR CHARGING:
+  // https://devzone.nordicsemi.com/f/nordic-q-a/105379/npm1300-is-not-charging---is-ntc-to-gnd-the-reason
   if (!configure_events()) {
     printk("Error: could not configure PMIC\n");
     return 0;
   }
 
-  regulator_disable(ldsw);
-
   if (!gpio_is_ready_dt(&user_btn)) {
     printk("Error: button device %s is not ready\n", user_btn.port->name);
     return 0;
-  }
-
-  // FOR CHARGING:
-  // https://devzone.nordicsemi.com/f/nordic-q-a/105379/npm1300-is-not-charging---is-ntc-to-gnd-the-reason
-  if (usb_enable(NULL)) {
-    printk("Failed to enable USB\n");
   }
 
   if (!device_is_ready(sht)) {
@@ -378,7 +388,7 @@ int main(void) {
   gpio_add_callback(user_btn.port, &user_btn_cb_data);
 
   // ========= Door switch =========
-  ret = gpio_pin_configure_dt(&door_btn, GPIO_INPUT);
+  ret = gpio_pin_configure_dt(&door_btn, GPIO_INPUT | GPIO_PULL_UP);
   if (ret != 0) {
     printk("Error %d: failed to configure %s pin %d\n", ret,
            door_btn.port->name, door_btn.pin);
@@ -398,7 +408,12 @@ int main(void) {
 
   // ========= State machine =========
 
-  led_off(leds, NPM_GREEN_LED);
+  for (int i = 0; i < 3; i++) {
+    led_on(leds, NPM_GREEN_LED);
+    k_msleep(250);
+    led_off(leds, NPM_GREEN_LED);
+    k_msleep(250);
+  }
 
   k_event_init(&s_obj.smf_event);
   smf_set_initial(SMF_CTX(&s_obj), &fsm_states[STATE_IDLE]);
