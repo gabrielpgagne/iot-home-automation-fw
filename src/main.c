@@ -177,7 +177,7 @@ void update_bthome_channels(struct k_work *work) {
     double ftemp = sensor_value_to_double(&temp);
     double fhumd = sensor_value_to_double(&hum);
     int soc = charger_get_soc(charger);
-    bool open = gpio_pin_get_dt(&user_btn);
+    bool open = gpio_pin_get_dt(&door_btn);
     printf("SHT: %.2f Cel; %0.2f %%RH; Door %s \n", ftemp, fhumd,
            open ? "open" : "closed");
     bt_update_all(ftemp, fhumd, open);
