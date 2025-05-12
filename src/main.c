@@ -106,7 +106,7 @@ void npm_event_cb(const struct device *dev, struct gpio_callback *cb,
 
   if (pins & BIT(NPM1300_EVENT_VBUS_REMOVED)) {
     printk("Vbus removed\n");
-    led_on(leds, NPM_RED_LED);
+    led_off(leds, NPM_RED_LED);
     vbus_connected = false;
     usb_disable();
   }
