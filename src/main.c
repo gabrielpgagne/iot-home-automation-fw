@@ -218,7 +218,7 @@ K_TIMER_DEFINE(door_open_wait_timer, door_wait_timer_expired_cb, NULL);
 void door_state_changed(const struct device* dev, struct gpio_callback* cb,
                         uint32_t pins) {
   int state = gpio_pin_get_dt(&door_btn);
-  printk("Door state changed to %d\n", state);
+  printk("Door is %s\n", state ? "open" : "closed");
   if (state) {
     k_timer_start(&door_open_wait_timer, FSM_DOOR_OPEN_GUARD_PERIOD, K_FOREVER);
   } else {
@@ -288,10 +288,10 @@ void state_door_open_run(void* o) {
     smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_IDLE]);
   } else if (s->events & EVENT_BUZZER_EXPIRED) {
     if (!regulator_is_enabled(ldsw)) {
-      // int ret = regulator_enable(ldsw);
-      // if (ret) {
-      //   printk("Failed to enable load switch\n");
-      // }
+      int ret = regulator_enable(ldsw);
+      if (ret) {
+        printk("Failed to enable load switch\n");
+      }
       k_timer_start(&buzzer_timer, K_MSEC(200), K_FOREVER);
     } else {
       regulator_disable(ldsw);
