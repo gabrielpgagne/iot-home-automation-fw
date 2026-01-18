@@ -1,0 +1,10 @@
+{
+    "configurations": [
+        {
+            "name": "Zephyr",
+            "compileCommands": "${workspaceFolder}/build/iot-home-automation-fw/compile_commands.json",
+            "configurationProvider": "ms-vscode.cmake-tools"
+        }
+    ],
+    "version": 4
+}

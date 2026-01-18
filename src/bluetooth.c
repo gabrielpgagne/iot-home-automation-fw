@@ -43,7 +43,7 @@ static struct bt_data ad[] = {
             sizeof(CONFIG_BT_DEVICE_NAME) - 1),
     BT_DATA(BT_DATA_SVC_DATA16, service_data, ARRAY_SIZE(service_data))};
 
-static void connected(struct bt_conn *conn, uint8_t err) {
+static void connected(struct bt_conn* conn, uint8_t err) {
   if (err) {
     printk("Connection failed, err 0x%02x %s\n", err, bt_hci_err_to_str(err));
     return;
@@ -52,7 +52,7 @@ static void connected(struct bt_conn *conn, uint8_t err) {
   printk("Connected\n");
 }
 
-static void disconnected(struct bt_conn *conn, uint8_t reason) {
+static void disconnected(struct bt_conn* conn, uint8_t reason) {
   printk("Disconnected, reason 0x%02x %s\n", reason, bt_hci_err_to_str(reason));
 }
 
@@ -68,7 +68,11 @@ static void bt_ready(int err) {
   }
 
   /* Start advertising */
-  err = bt_le_adv_start(BT_LE_ADV_CONN, ad, ARRAY_SIZE(ad), NULL, 0);
+  // MUST BE BT_LE_ADV_CONN to be able to DFU
+  const struct bt_le_adv_param* adv_params = BT_LE_ADV_PARAM(
+      BT_LE_ADV_CONN, BT_GAP_ADV_SLOW_INT_MIN, BT_GAP_ADV_SLOW_INT_MAX, NULL);
+
+  err = bt_le_adv_start(adv_params, ad, ARRAY_SIZE(ad), NULL, 0);
   if (err) {
     printk("Advertising failed to start (err %d)\n", err);
     return;
