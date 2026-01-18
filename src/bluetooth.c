@@ -69,8 +69,10 @@ static void bt_ready(int err) {
 
   /* Start advertising */
   // MUST BE BT_LE_ADV_CONN to be able to DFU
-  const struct bt_le_adv_param* adv_params = BT_LE_ADV_PARAM(
-      BT_LE_ADV_CONN, BT_GAP_ADV_SLOW_INT_MIN, BT_GAP_ADV_SLOW_INT_MAX, NULL);
+
+  const struct bt_le_adv_param* adv_params =
+      BT_LE_ADV_PARAM(BT_LE_ADV_OPT_CONNECTABLE, BT_GAP_ADV_SLOW_INT_MIN,
+                      BT_GAP_ADV_SLOW_INT_MAX, NULL);
 
   err = bt_le_adv_start(adv_params, ad, ARRAY_SIZE(ad), NULL, 0);
   if (err) {
