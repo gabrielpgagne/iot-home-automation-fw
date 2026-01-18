@@ -1,0 +1,14 @@
+identifier: doorio/nrf52833
+name: Doorio
+vendor: gabiche
+type: mcu
+arch: arm
+ram: 128
+flash: 512
+toolchain:
+  - zephyr
+supported:
+  - usb_device
+  - ble
+  - i2c
+  - gpio

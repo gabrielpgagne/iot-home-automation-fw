@@ -36,19 +36,8 @@ const struct device* regulators =
 const struct device* ldsw = DEVICE_DT_GET(DT_NODELABEL(npm1300_ek_ldo2));
 const struct device* charger = DEVICE_DT_GET(DT_NODELABEL(npm1300_ek_charger));
 const struct device* sht = DEVICE_DT_GET(DT_NODELABEL(shtcx));
-struct gpio_dt_spec user_btn = GPIO_DT_SPEC_GET(DT_ALIAS(sw0), gpios);
-struct gpio_dt_spec door_btn = GPIO_DT_SPEC_GET(DT_ALIAS(sw1), gpios);
-
-// ===================== PM state LED indicator ======================
-
-void pm_state_set(enum pm_state state, uint8_t substate_id) {
-  led_off(leds, NPM_BLUE_LED);
-}
-
-void pm_state_exit_post_ops(enum pm_state state, uint8_t substate_id) {
-  led_on(leds, NPM_BLUE_LED);
-  irq_unlock(0);
-}
+struct gpio_dt_spec user_btn = GPIO_DT_SPEC_GET(DT_NODELABEL(sw0), gpios);
+struct gpio_dt_spec door_btn = GPIO_DT_SPEC_GET(DT_NODELABEL(sw1), gpios);
 
 volatile bool vbus_connected;
 // ===================== FSM globals ======================
@@ -90,6 +79,7 @@ void npm_event_cb(const struct device* dev, struct gpio_callback* cb,
   static int press_t;
 
   if (pins & BIT(NPM1300_EVENT_SHIPHOLD_PRESS)) {
+    printk("Power button pressed\n");
     press_t = k_uptime_get();
   }
 

@@ -1,0 +1,6 @@
+if BOARD_DOORIO
+
+config BT_CTLR
+	default BT
+
+endif # BOARD_DOORIO

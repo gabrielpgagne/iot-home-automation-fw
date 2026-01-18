@@ -1,0 +1,5 @@
+board:
+  name: doorio
+  vendor: Gabiche
+  socs:
+    - name: nrf52833

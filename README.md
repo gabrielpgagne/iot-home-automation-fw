@@ -12,6 +12,10 @@ The V2 adopts many improvements:
 
 Follow Nordic's [instructions](https://www.nordicsemi.com/Products/Development-software/nRF-Connect-SDK/GetStarted#infotabs) to setup NCS. I use their VSCode extension for very easy development.
 
+## Creating the board
+
+See [this tutorial](https://www.digikey.com/en/maker/tutorials/2025/introduction-to-zephyr-part-12-how-to-create-a-custom-board-definition) and refer to [bl653](https://github.com/zephyrproject-rtos/zephyr/blob/main/boards/ezurio/bl653_dvk/bl653_dvk.dts)
+
 ## Build configuration
 
 **TODO** create a custom zephyr board instead of overlaying over a DK.
