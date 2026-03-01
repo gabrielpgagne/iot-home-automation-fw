@@ -37,28 +37,28 @@ const struct device* ldsw = DEVICE_DT_GET(DT_NODELABEL(npm1300_ek_ldo2));
 const struct device* charger = DEVICE_DT_GET(DT_NODELABEL(npm1300_ek_charger));
 const struct device* sht = DEVICE_DT_GET(DT_NODELABEL(shtcx));
 struct gpio_dt_spec user_btn = GPIO_DT_SPEC_GET(DT_NODELABEL(sw0), gpios);
-struct gpio_dt_spec door_btn = GPIO_DT_SPEC_GET(DT_NODELABEL(sw1), gpios);
 
 volatile bool vbus_connected;
 // ===================== FSM globals ======================
 
-#define FSM_MEASUREMENT_TIME_IDLE K_MINUTES(10)
+#define FSM_MEASUREMENT_TIME_IDLE K_MINUTES(1)
 #define FSM_MEASUREMENT_TIME_ACTIVE K_SECONDS(3)
-#define FSM_DOOR_OPEN_GUARD_PERIOD K_MINUTES(1)
 #define SILENT_MODE_DURATION K_MINUTES(5)
 
+/* Temperature threshold for freezer alarm (in Celsius) */
+#define TEMP_HIGH_THRESHOLD -10.0
+
 /* List of events */
-#define EVENT_DOOR_OPEN BIT(0)
-#define EVENT_DOOR_CLOSE BIT(1)
+#define EVENT_TEMP_HIGH BIT(0)
+#define EVENT_TEMP_OK BIT(1)
 #define EVENT_SILENT_BTN_PRESSED BIT(2)
 #define EVENT_SILENT_EXPIRED BIT(3)
 #define EVENT_BUZZER_EXPIRED BIT(4)
 
 static const struct smf_state fsm_states[];
 static struct gpio_callback user_btn_cb_data;
-static struct gpio_callback door_switch_cb_data;
 
-enum fsm_state { STATE_IDLE, STATE_DOOR_OPEN, STATE_SILENT };
+enum fsm_state { STATE_IDLE, STATE_TEMP_HIGH, STATE_SILENT };
 
 /* User defined object */
 struct s_object {
@@ -90,7 +90,7 @@ void npm_event_cb(const struct device* dev, struct gpio_callback* cb,
       if (vbus_connected) {
         printk("Ship mode entry not possible with USB connected\n");
       } else {
-        regulator_parent_ship_mode(regulators);
+        // regulator_parent_ship_mode(regulators);
       }
       printk("Short press\n");
     }
@@ -185,12 +185,19 @@ void update_bthome_channels(struct k_work* work) {
     double ftemp = sensor_value_to_double(&temp);
     double fhumd = sensor_value_to_double(&hum);
     int soc = charger_get_soc(charger);
-    bool open = gpio_pin_get_dt(&door_btn);
-    printf("SHT: %.2f Cel; %0.2f %%RH; Door %s \n", ftemp, fhumd,
-           open ? "open" : "closed");
-    bt_update_all(ftemp, fhumd, open);
+    bool temp_high = ftemp > TEMP_HIGH_THRESHOLD;
+    printf("SHT: %.2f Cel; %0.2f %%RH; Temp %s\n", ftemp, fhumd,
+           temp_high ? "HIGH" : "OK");
+    bt_update_all(ftemp, fhumd, temp_high);
     bt_update_battery(vbus_connected, soc);
     bt_publish();
+
+    /* Check temperature threshold and post event */
+    if (temp_high) {
+      k_event_post(&s_obj.smf_event, EVENT_TEMP_HIGH);
+    } else {
+      k_event_post(&s_obj.smf_event, EVENT_TEMP_OK);
+    }
   }
   led_off(leds, NPM_GREEN_LED);
 }
@@ -202,29 +209,6 @@ void measurement_timer_expired_cb(struct k_timer* dummy) {
 }
 
 K_TIMER_DEFINE(measurement_timer, measurement_timer_expired_cb, NULL);
-
-// ===================== Door switch callback ======================
-
-void door_wait_timer_expired_cb(struct k_timer* dummy) {
-  if (gpio_pin_get_dt(&door_btn)) {
-    k_event_post(&s_obj.smf_event, EVENT_DOOR_OPEN);
-  } else {
-    k_event_post(&s_obj.smf_event, EVENT_DOOR_CLOSE);
-  }
-}
-
-K_TIMER_DEFINE(door_open_wait_timer, door_wait_timer_expired_cb, NULL);
-
-void door_state_changed(const struct device* dev, struct gpio_callback* cb,
-                        uint32_t pins) {
-  int state = gpio_pin_get_dt(&door_btn);
-  printk("Door is %s\n", state ? "open" : "closed");
-  if (state) {
-    k_timer_start(&door_open_wait_timer, FSM_DOOR_OPEN_GUARD_PERIOD, K_FOREVER);
-  } else {
-    k_timer_start(&door_open_wait_timer, K_NO_WAIT, K_FOREVER);
-  }
-}
 
 // ===================== Silent mode timer ======================
 
@@ -263,8 +247,8 @@ void state_idle_run(void* o) {
 
   if (s->events & EVENT_SILENT_BTN_PRESSED) {
     smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_SILENT]);
-  } else if (s->events & EVENT_DOOR_OPEN) {
-    smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_DOOR_OPEN]);
+  } else if (s->events & EVENT_TEMP_HIGH) {
+    smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_TEMP_HIGH]);
   }
 }
 
@@ -274,17 +258,17 @@ void state_idle_exit(void* o) {
                 FSM_MEASUREMENT_TIME_ACTIVE);
 }
 
-void state_door_open_entry(void* o) {
-  printk("Enter Door open state\n");
+void state_temp_high_entry(void* o) {
+  printk("Enter temperature high state\n");
   k_timer_start(&buzzer_timer, K_NO_WAIT, K_FOREVER);
 }
 
-void state_door_open_run(void* o) {
+void state_temp_high_run(void* o) {
   struct s_object* s = (struct s_object*)o;
 
   if (s->events & EVENT_SILENT_BTN_PRESSED) {
     smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_SILENT]);
-  } else if (s->events & EVENT_DOOR_CLOSE) {
+  } else if (s->events & EVENT_TEMP_OK) {
     smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_IDLE]);
   } else if (s->events & EVENT_BUZZER_EXPIRED) {
     if (!regulator_is_enabled(ldsw)) {
@@ -300,8 +284,8 @@ void state_door_open_run(void* o) {
   }
 }
 
-void state_door_open_exit(void* o) {
-  printk("Exit Door open state\n");
+void state_temp_high_exit(void* o) {
+  printk("Exit temperature high state\n");
   k_timer_stop(&buzzer_timer);
   if (regulator_is_enabled(ldsw)) {
     regulator_disable(ldsw);
@@ -317,11 +301,9 @@ void state_silent_run(void* o) {
   struct s_object* s = (struct s_object*)o;
 
   if (s->events & EVENT_SILENT_EXPIRED) {
-    if (gpio_pin_get_dt(&door_btn)) {
-      smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_DOOR_OPEN]);
-    } else {
-      smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_IDLE]);
-    }
+    /* Trigger a measurement to check current temperature */
+    k_work_submit(&measurement_work_item);
+    smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_IDLE]);
   }
 }
 
@@ -333,9 +315,9 @@ void state_silent_exit(void* o) {
 static const struct smf_state fsm_states[] = {
     [STATE_IDLE] = SMF_CREATE_STATE(state_idle_entry, state_idle_run,
                                     state_idle_exit, NULL, NULL),
-    [STATE_DOOR_OPEN] =
-        SMF_CREATE_STATE(state_door_open_entry, state_door_open_run,
-                         state_door_open_exit, NULL, NULL),
+    [STATE_TEMP_HIGH] =
+        SMF_CREATE_STATE(state_temp_high_entry, state_temp_high_run,
+                         state_temp_high_exit, NULL, NULL),
     [STATE_SILENT] = SMF_CREATE_STATE(state_silent_entry, state_silent_run,
                                       state_silent_exit, NULL, NULL),
 };
@@ -393,25 +375,6 @@ int main(void) {
   gpio_init_callback(&user_btn_cb_data, silent_mode_button_pressed,
                      BIT(user_btn.pin));
   gpio_add_callback(user_btn.port, &user_btn_cb_data);
-
-  // ========= Door switch =========
-  ret = gpio_pin_configure_dt(&door_btn, GPIO_INPUT | GPIO_PULL_UP);
-  if (ret != 0) {
-    printk("Error %d: failed to configure %s pin %d\n", ret,
-           door_btn.port->name, door_btn.pin);
-    return 0;
-  }
-
-  ret = gpio_pin_interrupt_configure_dt(&door_btn, GPIO_INT_EDGE_BOTH);
-  if (ret != 0) {
-    printk("Error %d: failed to configure interrupt on %s pin %d\n", ret,
-           door_btn.port->name, door_btn.pin);
-    return 0;
-  }
-
-  gpio_init_callback(&door_switch_cb_data, door_state_changed,
-                     BIT(door_btn.pin));
-  gpio_add_callback(door_btn.port, &door_switch_cb_data);
 
   // ========= State machine =========
 
