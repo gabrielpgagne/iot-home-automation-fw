@@ -1,6 +1,16 @@
+/*
+ * Basement temperature and humidity sensor.
+ *
+ * Reads the SHTC3 every MEASUREMENT_INTERVAL and republishes the result as a
+ * BTHome v2 advertisement for Home Assistant. Advertising stays connectable so
+ * that OTA DFU remains available at any time.
+ */
+
 #include <stdlib.h>
 #include <zephyr/device.h>
+#include <zephyr/dfu/mcuboot.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/hwinfo.h>
 #include <zephyr/drivers/led.h>
 #include <zephyr/drivers/mfd/npm1300.h>
 #include <zephyr/drivers/regulator.h>
@@ -10,7 +20,6 @@
 #include <zephyr/kernel.h>
 #include <zephyr/pm/pm.h>
 #include <zephyr/pm/policy.h>
-#include <zephyr/smf.h>
 #include <zephyr/sys/printk.h>
 #include <zephyr/sys/util.h>
 #include <zephyr/usb/usb_device.h>
@@ -21,6 +30,10 @@
 #include "redef.h"
 
 #define PWR_BTN_MS 1000
+
+/* How often the SHTC3 is read and the advertisement refreshed. A basement does
+ * not move fast, so this is mostly a battery-life knob. */
+#define MEASUREMENT_INTERVAL K_MINUTES(5)
 
 // For LEDs, check config.overlay: only controllable if mode = "host"
 #define NPM_RED_LED 0
@@ -33,44 +46,16 @@ const struct device* pmic = DEVICE_DT_GET(DT_NODELABEL(npm1300_ek_pmic));
 const struct device* leds = DEVICE_DT_GET(DT_NODELABEL(npm1300_ek_leds));
 const struct device* regulators =
     DEVICE_DT_GET(DT_NODELABEL(npm1300_ek_regulators));
-const struct device* ldsw = DEVICE_DT_GET(DT_NODELABEL(npm1300_ek_ldo2));
 const struct device* charger = DEVICE_DT_GET(DT_NODELABEL(npm1300_ek_charger));
 const struct device* sht = DEVICE_DT_GET(DT_NODELABEL(shtcx));
 struct gpio_dt_spec user_btn = GPIO_DT_SPEC_GET(DT_NODELABEL(sw0), gpios);
 
 volatile bool vbus_connected;
-// ===================== FSM globals ======================
 
-#define FSM_MEASUREMENT_TIME_IDLE K_MINUTES(1)
-#define FSM_MEASUREMENT_TIME_ACTIVE K_SECONDS(3)
-#define SILENT_MODE_DURATION K_MINUTES(5)
-
-/* Temperature threshold for freezer alarm (in Celsius) */
-#define TEMP_HIGH_THRESHOLD -10.0
-
-/* List of events */
-#define EVENT_TEMP_HIGH BIT(0)
-#define EVENT_TEMP_OK BIT(1)
-#define EVENT_SILENT_BTN_PRESSED BIT(2)
-#define EVENT_SILENT_EXPIRED BIT(3)
-#define EVENT_BUZZER_EXPIRED BIT(4)
-
-static const struct smf_state fsm_states[];
+/* Given by the user button to force a reading without waiting out the
+ * interval, which is handy when checking the sensor against a reference. */
+static K_SEM_DEFINE(measure_now, 0, 1);
 static struct gpio_callback user_btn_cb_data;
-
-enum fsm_state { STATE_IDLE, STATE_TEMP_HIGH, STATE_SILENT };
-
-/* User defined object */
-struct s_object {
-  /* This must be first */
-  struct smf_ctx ctx;
-
-  /* Events */
-  struct k_event smf_event;
-  int32_t events;
-
-  /* Other state specific data add here */
-} s_obj;
 
 // ===================== Charger configuration ======================
 
@@ -125,11 +110,6 @@ bool configure_events(void) {
     return false;
   }
 
-  if (!device_is_ready(ldsw)) {
-    printk("Load switch device not ready.\n");
-    return false;
-  }
-
   if (!device_is_ready(charger)) {
     printk("Charger device not ready.\n");
     return false;
@@ -171,156 +151,97 @@ bool configure_events(void) {
   return true;
 }
 
-// ===================== Sensor measurements timer ======================
+// ===================== Reset diagnostics ======================
 
-void update_bthome_channels(struct k_work* work) {
+/* nPM1300 ERRLOG block, from the nPM1300 product specification. RSTCAUSE
+ * survives the PMIC's own power cycle and says why it restarted the rails. */
+#define NPM1300_ERRLOG_BASE 0x0EU
+#define NPM1300_ERRLOG_TASKCLR 0x00U
+#define NPM1300_ERRLOG_RSTCAUSE 0x03U
+
+static void print_reset_cause(void) {
+  uint32_t cause = 0;
+
+  /* The nRF only sees its own side: a PMIC power cycle shows up here as a
+   * power-on or brownout reset, hence the PMIC log below. */
+  if (hwinfo_get_reset_cause(&cause) == 0) {
+    printk("nRF reset cause 0x%08x:%s%s%s%s%s%s\n", cause,
+           (cause & RESET_PIN) ? " pin" : "",
+           (cause & RESET_SOFTWARE) ? " software" : "",
+           (cause & RESET_BROWNOUT) ? " brownout" : "",
+           (cause & RESET_POR) ? " power-on" : "",
+           (cause & RESET_WATCHDOG) ? " watchdog" : "",
+           (cause & RESET_CPU_LOCKUP) ? " lockup" : "");
+    hwinfo_clear_reset_cause();
+  }
+
+  uint8_t rst;
+  if (mfd_npm1300_reg_read(pmic, NPM1300_ERRLOG_BASE, NPM1300_ERRLOG_RSTCAUSE,
+                           &rst) == 0) {
+    printk("nPM1300 reset cause 0x%02x:%s%s%s%s%s%s%s\n", rst,
+           (rst & BIT(0)) ? " ship-exit" : "",
+           (rst & BIT(1)) ? " boot-monitor" : "",
+           (rst & BIT(2)) ? " watchdog" : "",
+           (rst & BIT(3)) ? " long-press" : "",
+           (rst & BIT(4)) ? " thermal" : "",
+           (rst & BIT(5)) ? " vsys-low" : "",
+           (rst & BIT(6)) ? " software" : "");
+    mfd_npm1300_reg_write(pmic, NPM1300_ERRLOG_BASE, NPM1300_ERRLOG_TASKCLR,
+                          1U);
+  } else {
+    printk("nPM1300 reset cause unreadable\n");
+  }
+}
+
+// ===================== Measurement ======================
+
+static void user_btn_pressed(const struct device* dev,
+                             struct gpio_callback* cb, uint32_t pins) {
+  k_sem_give(&measure_now);
+}
+
+static bool measure_and_publish(void) {
   struct sensor_value temp, hum;
-  led_on(leds, NPM_GREEN_LED);
+  bool ok = false;
+
+  /* The activity LED is only worth its current draw while on USB; on battery
+   * it would be a few mA for nobody to see in a dark basement. */
+  if (vbus_connected) {
+    led_on(leds, NPM_GREEN_LED);
+  }
+
   int err = sensor_sample_fetch(sht);
   if (err) {
-    printk("Failed to fetch data from SHT sensor\n");
+    printk("Failed to fetch data from SHT sensor (%d)\n", err);
   } else {
     err = sensor_channel_get(sht, SENSOR_CHAN_AMBIENT_TEMP, &temp);
+    if (err) {
+      printk("Failed to read temperature channel (%d)\n", err);
+    }
     err = sensor_channel_get(sht, SENSOR_CHAN_HUMIDITY, &hum);
+    if (err) {
+      printk("Failed to read humidity channel (%d)\n", err);
+    }
+
     double ftemp = sensor_value_to_double(&temp);
     double fhumd = sensor_value_to_double(&hum);
     int soc = charger_get_soc(charger);
-    bool temp_high = ftemp > TEMP_HIGH_THRESHOLD;
-    printf("SHT: %.2f Cel; %0.2f %%RH; Temp %s\n", ftemp, fhumd,
-           temp_high ? "HIGH" : "OK");
-    bt_update_all(ftemp, fhumd, temp_high);
-    bt_update_battery(vbus_connected, soc);
-    bt_publish();
-
-    /* Check temperature threshold and post event */
-    if (temp_high) {
-      k_event_post(&s_obj.smf_event, EVENT_TEMP_HIGH);
-    } else {
-      k_event_post(&s_obj.smf_event, EVENT_TEMP_OK);
+    if (soc < 0) {
+      soc = 0;
     }
+
+    printf("SHT: %.2f Cel; %.2f %%RH; SoC %d %%\n", ftemp, fhumd, soc);
+
+    bt_update_all(ftemp, fhumd, vbus_connected, (uint8_t)soc);
+    ok = (bt_publish() == 0);
   }
-  led_off(leds, NPM_GREEN_LED);
-}
 
-K_WORK_DEFINE(measurement_work_item, update_bthome_channels);
-
-void measurement_timer_expired_cb(struct k_timer* dummy) {
-  k_work_submit(&measurement_work_item);
-}
-
-K_TIMER_DEFINE(measurement_timer, measurement_timer_expired_cb, NULL);
-
-// ===================== Silent mode timer ======================
-
-void silent_mode_button_pressed(const struct device* dev,
-                                struct gpio_callback* cb, uint32_t pins) {
-  printk("Silent mode button press %d\n", gpio_pin_get_dt(&user_btn));
-  k_event_post(&s_obj.smf_event, EVENT_SILENT_BTN_PRESSED);
-}
-
-void silent_mode_timer_expired_cb(struct k_timer* dummy) {
-  k_event_post(&s_obj.smf_event, EVENT_SILENT_EXPIRED);
-}
-
-K_TIMER_DEFINE(silent_mode_timer, silent_mode_timer_expired_cb, NULL);
-
-// ===================== Buzzer timer ======================
-
-void buzzer_timer_expired_cb(struct k_timer* dummy) {
-  k_event_post(&s_obj.smf_event, EVENT_BUZZER_EXPIRED);
-}
-
-K_TIMER_DEFINE(buzzer_timer, buzzer_timer_expired_cb, NULL);
-
-// ===================== State machine definition ======================
-
-void state_idle_entry(void* o) {
-  printk("Enter idle state\n");
-  k_timer_start(&measurement_timer, FSM_MEASUREMENT_TIME_IDLE,
-                FSM_MEASUREMENT_TIME_IDLE);
-  k_timer_stop(&buzzer_timer);
-  k_timer_stop(&silent_mode_timer);
-}
-
-void state_idle_run(void* o) {
-  struct s_object* s = (struct s_object*)o;
-
-  if (s->events & EVENT_SILENT_BTN_PRESSED) {
-    smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_SILENT]);
-  } else if (s->events & EVENT_TEMP_HIGH) {
-    smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_TEMP_HIGH]);
+  if (vbus_connected) {
+    led_off(leds, NPM_GREEN_LED);
   }
+
+  return ok;
 }
-
-void state_idle_exit(void* o) {
-  printk("Exit idle state\n");
-  k_timer_start(&measurement_timer, FSM_MEASUREMENT_TIME_ACTIVE,
-                FSM_MEASUREMENT_TIME_ACTIVE);
-}
-
-void state_temp_high_entry(void* o) {
-  printk("Enter temperature high state\n");
-  k_timer_start(&buzzer_timer, K_NO_WAIT, K_FOREVER);
-}
-
-void state_temp_high_run(void* o) {
-  struct s_object* s = (struct s_object*)o;
-
-  if (s->events & EVENT_SILENT_BTN_PRESSED) {
-    smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_SILENT]);
-  } else if (s->events & EVENT_TEMP_OK) {
-    smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_IDLE]);
-  } else if (s->events & EVENT_BUZZER_EXPIRED) {
-    if (!regulator_is_enabled(ldsw)) {
-      int ret = regulator_enable(ldsw);
-      if (ret) {
-        printk("Failed to enable load switch\n");
-      }
-      k_timer_start(&buzzer_timer, K_MSEC(200), K_FOREVER);
-    } else {
-      regulator_disable(ldsw);
-      k_timer_start(&buzzer_timer, K_MSEC(800), K_FOREVER);
-    }
-  }
-}
-
-void state_temp_high_exit(void* o) {
-  printk("Exit temperature high state\n");
-  k_timer_stop(&buzzer_timer);
-  if (regulator_is_enabled(ldsw)) {
-    regulator_disable(ldsw);
-  }
-}
-
-void state_silent_entry(void* o) {
-  printk("Enter silent mode state\n");
-  k_timer_start(&silent_mode_timer, SILENT_MODE_DURATION, K_FOREVER);
-}
-
-void state_silent_run(void* o) {
-  struct s_object* s = (struct s_object*)o;
-
-  if (s->events & EVENT_SILENT_EXPIRED) {
-    /* Trigger a measurement to check current temperature */
-    k_work_submit(&measurement_work_item);
-    smf_set_state(SMF_CTX(&s_obj), &fsm_states[STATE_IDLE]);
-  }
-}
-
-void state_silent_exit(void* o) {
-  printk("Exit silent mode state\n");
-  k_timer_stop(&silent_mode_timer);
-}
-
-static const struct smf_state fsm_states[] = {
-    [STATE_IDLE] = SMF_CREATE_STATE(state_idle_entry, state_idle_run,
-                                    state_idle_exit, NULL, NULL),
-    [STATE_TEMP_HIGH] =
-        SMF_CREATE_STATE(state_temp_high_entry, state_temp_high_run,
-                         state_temp_high_exit, NULL, NULL),
-    [STATE_SILENT] = SMF_CREATE_STATE(state_silent_entry, state_silent_run,
-                                      state_silent_exit, NULL, NULL),
-};
 
 // ===================== Main code ======================
 
@@ -328,6 +249,7 @@ int main(void) {
   int ret;
 
   printk("Initializing...\n");
+  print_reset_cause();
 
   ret = ble_init();
   if (ret) {
@@ -372,11 +294,8 @@ int main(void) {
     return 0;
   }
 
-  gpio_init_callback(&user_btn_cb_data, silent_mode_button_pressed,
-                     BIT(user_btn.pin));
+  gpio_init_callback(&user_btn_cb_data, user_btn_pressed, BIT(user_btn.pin));
   gpio_add_callback(user_btn.port, &user_btn_cb_data);
-
-  // ========= State machine =========
 
   for (int i = 0; i < 3; i++) {
     led_on(leds, NPM_GREEN_LED);
@@ -385,18 +304,27 @@ int main(void) {
     k_msleep(250);
   }
 
-  k_event_init(&s_obj.smf_event);
-  smf_set_initial(SMF_CTX(&s_obj), &fsm_states[STATE_IDLE]);
+  /* Publish once straight away so Home Assistant does not have to wait a full
+   * interval to discover the device. */
+  bool first_reading_ok = measure_and_publish();
 
-  /* Run the state machine */
-  while (1) {
-    /* Block until an event is detected */
-    s_obj.events = k_event_wait(&s_obj.smf_event, 0xffff, true, K_FOREVER);
-
-    /* State machine terminates if a non-zero value is returned */
-    ret = smf_run_state(SMF_CTX(&s_obj));
+  /* An image installed over DFU boots in the "test" state, and MCUboot swaps
+   * the previous one back on the next reset unless it is confirmed. Confirm
+   * only after a reading has actually gone out over the air, so a build that
+   * cannot read the sensor or advertise still rolls itself back. */
+  if (first_reading_ok && !boot_is_img_confirmed()) {
+    ret = boot_write_img_confirmed();
     if (ret) {
-      break;
+      printk("Failed to confirm image (%d)\n", ret);
+    } else {
+      printk("Image confirmed, rollback disarmed\n");
     }
+  }
+
+  while (1) {
+    /* Wakes early on a button press, otherwise once per interval. Either way
+     * the next thing to do is take a reading. */
+    k_sem_take(&measure_now, MEASUREMENT_INTERVAL);
+    measure_and_publish();
   }
 }

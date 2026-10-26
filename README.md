@@ -1,47 +1,88 @@
-# IoT Fridge V2
+# Basement temperature & humidity sensor
 
-The V2 adopts many improvements:
+A BTHome v2 sensor built on the `doorio` board: the on-board SHTC3 is read every
+five minutes and the reading is broadcast in the BLE advertisement, where Home
+Assistant picks it up. Advertising stays connectable so OTA DFU keeps working.
 
-- Feather format
-- nRF MCU
-- USBC connector with CDC ACM (virtual COM port)
-- LiPo battery charging (nPM1300)
-- Nordic Connect SDK
+This branch shares `boards/gabiche/doorio` with the other application branches
+(`temp-based` for the freezer alarm, `switch-based` for the door sensor); only
+`src/` and `prj.conf` differ.
+
+## What it advertises
+
+The BTHome v2 service data (UUID `0xFCD2`, unencrypted, regular updates) carries,
+in ascending object-id order:
+
+| Object id | Field               | Encoding              |
+| --------- | ------------------- | --------------------- |
+| `0x00`    | Packet id           | uint8, wraps at 255   |
+| `0x01`    | Battery             | uint8, percent        |
+| `0x02`    | Temperature         | sint16, 0.01 °C       |
+| `0x03`    | Humidity            | uint16, 0.01 %RH      |
+| `0x16`    | Battery charging    | uint8, 0/1            |
+
+The packet id lets Home Assistant drop duplicated adverts and notice updates it
+missed. With the device name `basement` the whole advertisement is 30 of the 31
+available bytes — lengthening `CONFIG_BT_DEVICE_NAME` will overflow it.
+
+Battery percent is a crude voltage-to-percent curve over the nPM1300's measured
+cell voltage (see `src/charger.c`), not a real fuel gauge.
+
+## Behaviour
+
+- Three green blinks at boot, then an immediate first reading so Home Assistant
+  discovers the device without waiting out an interval.
+- A reading every `MEASUREMENT_INTERVAL` (`src/main.c`, five minutes by default).
+- Pressing the user button (`sw0`) takes a reading immediately.
+- The green activity LED only blinks while USB is connected — on battery it
+  would cost milliamps for nobody to see.
+- Plugging USB in lights the red LED and brings up the CDC ACM console.
 
 ## SDK & IDE setup
 
-Follow Nordic's [instructions](https://www.nordicsemi.com/Products/Development-software/nRF-Connect-SDK/GetStarted#infotabs) to setup NCS. I use their VSCode extension for very easy development.
+Follow Nordic's [instructions](https://www.nordicsemi.com/Products/Development-software/nRF-Connect-SDK/GetStarted#infotabs)
+to set up NCS. Built and tested against NCS v2.9.2.
 
-## Creating the board
+## Building
 
-See [this tutorial](https://www.digikey.com/en/maker/tutorials/2025/introduction-to-zephyr-part-12-how-to-create-a-custom-board-definition) and refer to [bl653](https://github.com/zephyrproject-rtos/zephyr/blob/main/boards/ezurio/bl653_dvk/bl653_dvk.dts)
+Board: `doorio/nrf52833`, with sysbuild enabled (MCUboot comes from
+`sysbuild.conf`). The board definition lives in this repo, so the application
+directory has to be on the board root:
 
-## Build configuration
+```sh
+west build -b doorio/nrf52833 --sysbuild . -- -DBOARD_ROOT=$PWD
+```
 
-**TODO** create a custom zephyr board instead of overlaying over a DK.
+In the nRF Connect VS Code extension, add the application as a build
+configuration and pick `doorio/nrf52833`; the extension finds `boards/` on its
+own.
 
-In the vscode extension:
-
-- Board: `bl653_dvk/nrf52833`
-- Base Devicetree overlays: `board.overlay`
-- Extra Devicetree overlays: `config.overlay`
-  
-Leave the rest as is. Press _Generate and build_.
+See [this tutorial](https://www.digikey.com/en/maker/tutorials/2025/introduction-to-zephyr-part-12-how-to-create-a-custom-board-definition)
+and [bl653](https://github.com/zephyrproject-rtos/zephyr/blob/main/boards/ezurio/bl653_dvk/bl653_dvk.dts)
+for how the board definition was put together.
 
 ## Flashing
 
-Use a nRF dev kit's onboard debugger. For example, _PCA10056_ aka _nRF52840 DK_.
+Use an nRF dev kit's onboard debugger, for example a _PCA10056_ (nRF52840 DK).
 
 ## Over-the-air update
 
-BLE Over-the-air (OTA) Direct Firmware Upgrade (DFU) allows flashing new firmware without a wired connection to a debugger. 
+BLE OTA DFU allows flashing new firmware without a debugger.
 
-**This only works if an MCUBoot-abled and `CONFIG_NCS_SAMPLE_MCUMGR_BT_OTA_DFU=y` firmware has been uploaded previous via JTAG to the board.**
+**This only works if an MCUboot-enabled and `CONFIG_NCS_SAMPLE_MCUMGR_BT_OTA_DFU=y`
+firmware was previously flashed over JTAG.**
 
-After compiling the project, a `build/npm1300_one_button/zephyr/zephyr.signed.bin` file should have been created. Transfer it to your phone. 
+After building, transfer `build/iot-home-automation-fw/zephyr/zephyr.signed.bin`
+to your phone. Power up the board, open nRF Connect Mobile, connect to
+`basement`, and in the DFU tab pick the signed binary.
 
-Power up the board. Open NRF Connect Mobile on your phone and connect to the board. In the DFU tab's document picker, select the signed binary firmware image, press start and voilà. 
+## Home Assistant
+
+The BTHome integration auto-discovers the device once an ESPHome Bluetooth proxy
+or a local adapter sees the advert; accept the discovery for `basement`. No
+encryption key is configured, so there is nothing to paste.
 
 ## Virtual COM port
 
-With proper assembly (good luck), the board should open a virtual COM port (USB CDC ACM) (e.g., `/dev/ttyACM0`). You can open it and read the logs freely.
+With proper assembly (good luck), the board opens a virtual COM port (USB CDC
+ACM, e.g. `/dev/ttyACM0`) carrying the logs.

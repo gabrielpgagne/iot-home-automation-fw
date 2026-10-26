@@ -85,7 +85,9 @@
 
 		host-int-gpios = <&gpio0 12 0>;
 		pmic-int-pin = <1>;
-		// long-press-reset = "one-button";
+		/* The driver defaults to "one-button", where holding SHPHLD low
+		 * for ~10 s power-cycles every rail. */
+		long-press-reset = "disabled";
 		// ship-to-active-time = <96>;
 
 
@@ -131,6 +133,9 @@
 				regulator-max-microvolt = <3300000>;
 				regulator-initial-mode = <NPM1300_LDSW_MODE_LDSW>;
 				// soft-start-microamp = <20000>;
+				/* Load switch feeding the buzzer: force it off at boot in
+				 * case it was left on. */
+				regulator-boot-off;
 			};
 
 		};
